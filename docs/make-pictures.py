@@ -104,6 +104,42 @@ def phases(p):
     s.append('</svg>')
     return '\n'.join(s)
 
+def social(p):
+    """The link-preview card (1280 x 640). GitHub wants a PNG: render this SVG at exactly that size."""
+    W, H = 1280, 640
+    s = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="WordPress to Webflow, a Claude skill">',
+         f'<rect width="{W}" height="{H}" fill="{p["bg"]}"/>',
+         f'<rect x="0" y="0" width="{W}" height="6" fill="{p["accent"]}"/>']
+    s.append(f'<rect x="80" y="116" width="174" height="38" rx="19" fill="{p["accentSoft"]}"/>')
+    s.append(f'<text x="167" y="141.5" text-anchor="middle" font-family="{SANS}" font-size="17" font-weight="700" letter-spacing="2" fill="{p["accent"]}">CLAUDE SKILL</text>')
+    s.append(f'<text x="76" y="246" font-family="{SANS}" font-size="72" font-weight="700" letter-spacing="-1.8" fill="{p["ink"]}">WordPress <tspan fill="{p["accent"]}">to</tspan></text>')
+    s.append(f'<text x="76" y="328" font-family="{SANS}" font-size="72" font-weight="700" letter-spacing="-1.8" fill="{p["ink"]}">Webflow</text>')
+    s.append(f'<text x="80" y="392" font-family="{SANS}" font-size="27" fill="{p["muted"]}">Rebuild the site from its source, keep every URL,</text>')
+    s.append(f'<text x="80" y="428" font-family="{SANS}" font-size="27" fill="{p["muted"]}">and prove the result by script.</text>')
+    x = 80
+    for label in ('10 gated phases', '9 reference files', '21 scripts'):
+        w = 34 + len(label) * 10.2
+        s.append(f'<rect x="{x}" y="478" width="{w:.0f}" height="44" rx="9" fill="{p["panel"]}" stroke="{p["line"]}" stroke-width="1.5"/>')
+        s.append(f'<text x="{x + w/2:.1f}" y="507" text-anchor="middle" font-family="{SANS}" font-size="19.5" font-weight="600" fill="{p["ink"]}">{esc(label)}</text>')
+        x += w + 14
+    s.append(f'<text x="80" y="578" font-family="{MONO}" font-size="18" fill="{p["muted"]}">github.com/seanbtw/wordpress-to-webflow</text>')
+    # motif, drawn at 1.7x: old site | diff strip | rebuild
+    k = 1.7; ox, oy = 760, 118
+    g = [f'<g transform="translate({ox} {oy}) scale({k})">']
+    g.append(page(0, 0, p, p['wire'], p['wireFill']))
+    g.append(page(146, 0, p, p['accent'], p['accentSoft']))
+    g.append(f'<rect x="134" y="0" width="8" height="200" rx="4" fill="{p["panel"]}" stroke="{p["line"]}" stroke-width="0.8"/>')
+    for i in range(19):
+        g.append(f'<rect x="136.5" y="{10 + i*10}" width="3" height="1.4" rx="0.7" fill="{p["faint"]}" opacity="0.7"/>')
+    cx, cy = 276, 0
+    g.append(f'<circle cx="{cx}" cy="{cy}" r="13" fill="{p["ok"]}" stroke="{p["bg"]}" stroke-width="3"/>')
+    g.append(f'<path d="M{cx-5.5} {cy+0.5} l3.8 3.8 l7.2 -7.6" fill="none" stroke="{p["bg"]}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>')
+    for tx, label in ((65, 'old site'), (211, 'rebuild')):
+        g.append(f'<text x="{tx}" y="222" text-anchor="middle" font-family="{MONO}" font-size="10.5" fill="{p["muted"]}">{label}</text>')
+    g.append('</g>')
+    return '\n'.join(s + g + ['</svg>'])
+
+open(f'{out}/social-preview.svg', 'w').write(social(PAL['dark']) + '\n')
 for mode, p in PAL.items():
     open(f'{out}/banner-{mode}.svg', 'w').write(banner(p) + '\n')
     open(f'{out}/phases-{mode}.svg', 'w').write(phases(p) + '\n')
