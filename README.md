@@ -20,6 +20,7 @@ skills/wordpress-to-webflow/
     verification.md             every check, code parity, the new-item test
     structured-data.md          JSON-LD pattern, safe publishing, Wikidata
     cutover.md                  the DNS switch and after
+    example-theme-mapping.md    one block theme mapped to Webflow, as a model
   scripts/                      config-driven checking and redirect tools
   assets/site.config.example.json
 ```

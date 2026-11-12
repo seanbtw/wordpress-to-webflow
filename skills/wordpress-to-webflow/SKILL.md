@@ -64,7 +64,7 @@ Each phase has a gate. Do not start the next until the gate's evidence is in `PR
 | 7 | Verification: structure, visual, behaviour, links, content, SEO, code parity, editor acceptance | `references/verification.md` |
 | 8 | Cutover: re-sync, DNS, launch checks, rollback, retirement. Always with the owner, never unattended | `references/cutover.md` |
 
-Keep a mapping file per theme in the project (`theme-mapping.md`): each theme block, whether it became a component or a page-owned shell with a list, and why. Sites on the same theme share most of it, so the second migration starts from the first one's file.
+Keep a mapping file per theme in the project (`theme-mapping.md`): each theme block, whether it became a component or a page-owned shell with a list, and why. Sites on the same theme share most of it, so the second migration starts from the first one's file. `references/example-theme-mapping.md` is the one from the reference migration, as a model.
 
 ## When the request is only one part
 
