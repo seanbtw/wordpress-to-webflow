@@ -1,0 +1,127 @@
+{
+  "_about": "Site values for the wordpress-to-webflow scripts. Copy this file to your project folder as site.config.json and replace every value. Paths are relative to the folder this file is in. SECRETS NEVER GO IN THIS FILE: the Webflow token is read only from the WEBFLOW_TOKEN environment variable, and no API key, password or service-account file belongs here. A value left as <something in angle brackets> counts as not set. Keys starting with _ are notes and are ignored.",
+
+  "site": {
+    "name": "Example Co",
+    "liveOrigin": "https://www.example.com",
+    "redirectRulesFile": "inventory/redirect-rules.json",
+    "sitemapPath": "/sitemap_index.xml",
+    "_redirectRulesFile": "Optional. The host's exported redirect rules: a JSON list of { pattern, replacement, argmatch, domain }. Leave it out if the host has none.",
+    "_sitemapPath": "Optional. The live WordPress sitemap index (the default is the Yoast one)."
+  },
+
+  "wordpress": {
+    "localOrigin": "http://localhost:8080",
+    "uploadsPath": "/wp-content/uploads/",
+    "_localOrigin": "A local copy of the WordPress site, used as the reference by the text checks. Optional for the URL and link checks."
+  },
+
+  "webflow": {
+    "siteId": "<Webflow site id>",
+    "stagingOrigin": "https://example.webflow.io",
+    "collections": {
+      "blog": "<collection id>",
+      "team": "<collection id>"
+    },
+    "sitemapExcludeCollections": ["tag", "author"],
+    "_collections": "Used by cms-counts.mjs: your own key for each collection, and its Webflow collection id.",
+    "_sitemapExcludeCollections": "Used by sitemap-exclude.mjs: collection slugs (the first part of the item URL) whose items stay out of sitemap.xml."
+  },
+
+  "release": {
+    "bundleName": "site",
+    "assetsOrigin": "https://assets.example.com",
+    "distDir": "webflow-code/dist",
+    "_about": "Optional. Only for sites that load one hashed script and stylesheet of their own from a separate host: <assetsOrigin>/<hash>/<bundleName>.min.js and .css. distDir is the local build folder (bundle-swap.mjs)."
+  },
+
+  "paths": {
+    "inventoryDir": "inventory",
+    "verifyDir": "verify",
+    "_inventoryDir": "Facts collected from WordPress: urls.csv, seo.csv, assets.csv, media-manifest.json, cms-expected.json. build-redirects.py writes redirects.csv here.",
+    "_verifyDir": "Everything the scripts write: staging-paths.json, live-capture.json, redirects-import.csv, url-manifest.csv and each check's report."
+  },
+
+  "pathRewrites": [
+    { "exact": ["/news/", "/news"], "to": "/latest-news/", "note": "a listing that was renamed on purpose" },
+    { "prefixRe": "^/search-results/?", "to": "/search", "note": "the old search page" }
+  ],
+
+  "capture": {
+    "extraUrlFiles": [
+      { "file": "inventory/old-crawl.csv", "column": "url", "tag": "crawl" }
+    ],
+    "searchConsolePagesFile": "inventory/search-console-pages.csv",
+    "minImpressions": 10,
+    "gapMs": 1200,
+    "_about": "All optional. More lists of old URLs for live-capture.mjs to record. The Search Console file has columns page and impressions."
+  },
+
+  "redirects": {
+    "listingFallbacks": [
+      ["/blog/", "/blog"],
+      ["/team-member/", "/about/team"]
+    ],
+    "keepQueryOn": ["/search"],
+    "targetCorrections": {
+      "/blog/a-post-with-a-tpyo/": "/blog/a-post-with-a-typo/"
+    },
+    "documentsBase": "https://assets.example.com/files/uploads/",
+    "queryCarry": [
+      { "from": "/search-results", "params": ["search", "s"], "to": "/search", "toParam": "query" }
+    ],
+    "extra": [
+      { "from": "/team-member/old-slug", "to": "/team-member/new-slug", "origin": "slug changed on import" },
+      { "from": "/favicon.ico", "to": "https://assets.example.com/icons/favicon.ico", "origin": "root icon file" }
+    ],
+    "prefixes": [
+      { "from": "/blog/page/", "to": "/blog", "origin": "WordPress archive pagination" }
+    ],
+    "oldSitemaps": ["sitemap_index.xml", "post-sitemap.xml", "page-sitemap.xml", "category-sitemap.xml", "author-sitemap.xml"],
+    "identitySkip": ["/a-page-whose-wordpress-title-is-malformed"],
+    "testUrls": ["/search-results?search=example", "/news", "/news/"],
+    "_about": "All optional, read by build-redirects.py. listingFallbacks: an old item with no page on the new site goes to its listing. keepQueryOn: pages whose query string a redirect target keeps. targetCorrections: a legacy rule target that is a typo on live, and the path it should have been. documentsBase: where old upload files that are not in the media manifest live now (each is probed with one HEAD request). queryCarry: an old path whose query parameter must be carried to a new path. extra: single redirects you decided on. prefixes: whole old sections sent to one page. oldSitemaps: old sitemap file names, sent to /sitemap.xml. identitySkip: pages whose title is not checked. testUrls: more old URLs to put in the manifest."
+  },
+
+  "checks": {
+    "excludePathRes": ["^/(style-guide|test-page)$", "^/(tag|author)/"],
+    "browserPassSkipPrefixes": ["/tag/", "/author/"],
+    "blockRequestRes": ["chat-widget\\.example\\.net"],
+    "blockPostRes": ["forms\\.example\\.net"],
+    "seo": {
+      "skipTitleFor": ["/search"],
+      "jsonldExpect": [
+        { "pathRe": ".", "type": "Organization", "count": 1 },
+        { "pathRe": "^/blog/", "type": "Article" }
+      ],
+      "noJsTextPaths": ["/services"],
+      "wpContentMarker": "entry-content"
+    },
+    "console": {
+      "extraPaths": ["/search?query=example"],
+      "notFoundPath": "/this-page-does-not-exist",
+      "widths": [390, 768, 992, 1440],
+      "declaredHosts": ["forms\\.example\\.net", "maps\\.googleapis\\.com|gstatic\\.com", "player\\.vimeo\\.com"],
+      "thirdPartyRes": ["maps\\.googleapis\\.com|Google Maps JavaScript API"],
+      "comparePaths": ["/", "/about", "/contact"],
+      "probeSelectors": { "navLinks": "nav a", "videos": "video" }
+    },
+    "bodies": {
+      "wpSelector": ".entry-content",
+      "wpSelectorByType": { "case-study": ".case-study-content" },
+      "wfSelector": ".post-content"
+    },
+    "codeParity": {
+      "purposes": [["Forms vendor", "forms\\.example\\.net"], ["Theme", "example-theme"]]
+    },
+    "jsonld": {
+      "vocabFile": "verify/vocab/schemaorg-current-https.jsonld",
+      "factsFiles": ["inventory/company-facts.json"],
+      "externalIds": ["https://parent.example.org/#organization"],
+      "keywords": ["en", "GB"],
+      "skipPathRes": ["^/drafts/"],
+      "blocksPerPage": 1
+    },
+    "_about": "All optional except where a script's header says it needs the key. Regular expressions are written as JSON strings, so a backslash is doubled."
+  }
+}

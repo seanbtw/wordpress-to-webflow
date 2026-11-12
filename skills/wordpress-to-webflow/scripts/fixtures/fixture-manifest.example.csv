@@ -1,0 +1,6 @@
+source,expected_status,expected_final,identity,origins,impressions,live_status,live_final,note
+/about,200,/about,,fixture control (correct),,,,must pass: replace /about with a page that exists on your staging site
+/contact/,200,/contact,,fixture control (correct; slash normalisation),,,,must pass: a real page asked for with a trailing slash
+/about/team,200,/contact,,fixture WRONG DESTINATION,,,,must fail: a real page with a wrong expected destination
+/fixture-missing-url,200,/about,,fixture MISSING URL,,,,must fail: a path that does not exist (404)
+/about,200,/about,Totally Unrelated Title,fixture WRONG IDENTITY,,,,must fail: a real page with a wrong expected title

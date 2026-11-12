@@ -1,0 +1,46 @@
+# Scripts
+
+Capture, redirect and verification scripts for a WordPress to Webflow migration. Every script reads its site values from one config file, found in this order: `--config <path>`, the `SITE_CONFIG` environment variable, `./site.config.json` in the current folder. Paths in the config are relative to the folder the config file is in (your project folder). Start from `../assets/site.config.example.json`.
+
+Two folders hold everything: `paths.inventoryDir` (facts collected from WordPress, written as `<inventoryDir>` below) and `paths.verifyDir` (everything the scripts write, `<verifyDir>` below). Each script's header comment lists its exact inputs, outputs and exit codes. A script stops with a message naming the config key when one it needs is not set.
+
+| Script | When you run it | What it needs | What it writes |
+|---|---|---|---|
+| `site.mjs`, `site_config.py` | Never on their own: the config loaders the other scripts import | The config file | Nothing |
+| `wf-api.mjs` | Never on its own: the Webflow API helper | `WEBFLOW_TOKEN` in the environment | Nothing |
+| `block.mjs` | Never on its own: blocks trackers and form posts during browser checks | Optional `checks.blockRequestRes`, `checks.blockPostRes` | Nothing |
+| `cms-counts.mjs` | Phase 2, after the import, and after anything that may touch the CMS (a backup restore) | `WEBFLOW_TOKEN`, `webflow.collections`, `<inventoryDir>/cms-expected.json` | `<verifyDir>/cms-counts-<time>.json` |
+| `compare-bodies.mjs` | Phase 2 and Phase 7: rich-text bodies against the local WordPress copy | Local WordPress, staging, `checks.bodies.*`; Playwright, cheerio | `<verifyDir>/bodies/rendered-compare-<type>.json` and screenshots |
+| `glued-words.mjs` | Phase 4 and Phase 7: after pages or bodies are built | Local WordPress, staging; paths on the command line | JSON on standard output |
+| `bundle-swap.mjs` | Phase 5: to test an unreleased script and stylesheet build on real staging pages (imported by your own test) | `release.*`, staging; Playwright | Nothing (returns a browser context) |
+| `console-check.mjs` | Phase 5 and Phase 7; `--compare` before and after a change to a live site | Staging, `<verifyDir>/staging-paths.json` or `checks.console.paths`; Playwright | `<verifyDir>/console-check.json` or `console-compare.json` |
+| `staging-paths.mjs` | Phase 6, first; again whenever pages or items are added | `WEBFLOW_TOKEN`, `webflow.siteId`, staging; optional `<verifyDir>/page-paths.json` | `<verifyDir>/staging-paths.json` |
+| `live-capture.mjs` | Phase 6, before building redirects (it can be started in Phase 0: it only reads the live site) | `site.liveOrigin`, `<inventoryDir>/urls.csv`; optional host rules file and extra URL lists | `<verifyDir>/live-capture.json` |
+| `build-redirects.py` | Phase 6, after the two above | `urls.csv`, `staging-paths.json`, `live-capture.json`; optional host rules, `seo.csv`, `media-manifest.json`, `pathRewrites`, `redirects.*` | `<verifyDir>/redirects-import.csv`, `<verifyDir>/url-manifest.csv`, `<inventoryDir>/redirects.csv` |
+| `check-urls.mjs` | Phase 6, after importing the redirects and publishing staging; again in Phase 7 and against the live domain at cutover (`--origin`). Run `--fixture` first to prove it fails when it should | Staging, `<verifyDir>/url-manifest.csv` (or `fixture-manifest.csv`) | `<verifyDir>/check-urls.json` |
+| `sitemap-exclude.mjs` | Phase 6, then after any Designer page-settings save and before each publish | `WEBFLOW_TOKEN`, `webflow.sitemapExcludeCollections`, `staging-paths.json` | Changes the sitemap setting in Webflow (`--dry` changes nothing) |
+| `crawl-links.mjs` | Phase 7 | Staging, `staging-paths.json`; Playwright | `<verifyDir>/links.json`, `links.md` |
+| `seo-check.mjs` | Phase 7 | Staging, `staging-paths.json`, `<inventoryDir>/seo.csv`; optional `assets.csv`, `media-manifest.json`, `checks.seo.*` | `<verifyDir>/seo-check.json`, `seo-check.md` |
+| `code-parity.py` | Phase 7, before calling the migration done: one page per template, live against Webflow | `<verifyDir>/code-parity/pages.tsv` and the saved HTML in `code-parity/raw/` | `<verifyDir>/code-parity/inventory.json` |
+| `code-parity-report.py` | Straight after `code-parity.py`; again after each verdict you record | `inventory.json`, optional `code-parity/verdicts.json` | `<verifyDir>/code-parity.md` |
+| `verify-jsonld.mjs` | When adding schema markup (any Webflow site): on staging before publishing, on the live origin after | Staging or an origin on the command line, the sitemap, optional `checks.jsonld.*`; `curl` | `<verifyDir>/jsonld-check-<host>.json` |
+| `schema-vocab-check.mjs` | With `verify-jsonld.mjs` | `checks.jsonld.vocabFile` (schema.org's vocabulary file); `curl` | Report on standard output |
+| `diff-staging-live.py` | On a site already live on Webflow, before publishing a staging change (Phase 8 onwards) | `site.liveOrigin` (the live Webflow site), staging; `curl` | Report on standard output |
+
+`fixtures/fixture-manifest.example.csv` is a starting point for `<verifyDir>/fixture-manifest.csv`: a few rows that are right and a few that are wrong on purpose, for `check-urls.mjs --fixture`.
+
+## Install
+
+- **Node 20.18.1 or newer** (the scripts use built-in `fetch` and top-level `await`).
+- **Python 3.9 or newer**, standard library only. Run the Python scripts with `python3 -I`.
+- **curl** on the PATH (used by the JSON-LD checks and the two Python scripts that fetch).
+- In this folder: `npm install`, then `npx playwright install chromium`. Only two packages are needed, pinned in `package.json`: `playwright` (the browser checks: `crawl-links`, `console-check`, `compare-bodies`, `bundle-swap`) and `cheerio` (`compare-bodies`). The other scripts need no install.
+
+## Notes
+
+- **The Webflow token** is read only from the `WEBFLOW_TOKEN` environment variable. It is never read from a file, printed or written. Export it in the shell for the run; do not add it to `site.config.json`.
+- **Python and TLS on some Macs**: Python's `urllib` can fail with `CERTIFICATE_VERIFY_FAILED` because that Python has no certificate store. The Python scripts fetch through `curl` instead.
+- **What touches the network**: each script's header says which hosts it calls. Beyond the hosts in your config or on the command line, that is: the Webflow API (`staging-paths`, `sitemap-exclude`, `cms-counts`), whatever a page loads when a browser check opens it, and, for `live-capture.mjs`, the destination of any old redirect that leaves the site (each redirect is followed to its end).
+- **Only `sitemap-exclude.mjs` changes anything** outside your project folder (the sitemap setting of the items you name). Every other script reads.
+- **Importing redirects in Webflow replaces every existing redirect.** `redirects-import.csv` is always the full list.
+- **`staging-paths.json` is the base of most checks.** Run `staging-paths.mjs` again after adding pages or publishing new items, or the checks will miss them.

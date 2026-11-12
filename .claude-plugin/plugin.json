@@ -1,0 +1,5 @@
+{
+  "name": "wordpress-to-webflow",
+  "description": "Rebuild a WordPress site in Webflow: method, phase gates, Webflow limits and workarounds, redirect and verification scripts, structured data.",
+  "version": "0.1.0"
+}

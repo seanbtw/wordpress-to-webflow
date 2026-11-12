@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+*.pem
+service-account*.json
+site.config.json
+__pycache__/
+.DS_Store
+private/
