@@ -1,0 +1,14 @@
+{
+  "name": "seanbtw-skills",
+  "description": "Skills for moving and maintaining websites on Webflow.",
+  "owner": {
+    "name": "seanbtw"
+  },
+  "plugins": [
+    {
+      "name": "wordpress-to-webflow",
+      "source": "./",
+      "description": "Rebuild a WordPress site in Webflow so it looks and behaves the same, keeps every URL that matters, and stays editable."
+    }
+  ]
+}

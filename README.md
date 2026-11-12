@@ -142,7 +142,19 @@ The full list, with the workaround for each, is in [`webflow-traps.md`](skills/w
 
 ## Install
 
-For yourself, in Claude Code:
+**Claude Code, as a plugin (easiest).** In a Claude Code session:
+
+```
+/plugin marketplace add seanbtw/wordpress-to-webflow
+```
+
+```
+/plugin install wordpress-to-webflow@seanbtw-skills
+```
+
+Or from a terminal: `claude plugin marketplace add seanbtw/wordpress-to-webflow`, then `claude plugin install wordpress-to-webflow@seanbtw-skills`.
+
+**Claude Code, as a plain skill.** Clone the repository and link the skill folder into your personal skills (or copy it into a project's `.claude/skills/`):
 
 ```bash
 git clone https://github.com/seanbtw/wordpress-to-webflow.git
@@ -152,9 +164,9 @@ git clone https://github.com/seanbtw/wordpress-to-webflow.git
 ln -s "$(pwd)/wordpress-to-webflow/skills/wordpress-to-webflow" ~/.claude/skills/wordpress-to-webflow
 ```
 
-For one project, copy `skills/wordpress-to-webflow` into that project's `.claude/skills/` folder.
+**The Claude apps.** Download `wordpress-to-webflow.zip` from the [latest release](https://github.com/seanbtw/wordpress-to-webflow/releases/latest), then in Claude open Customize, Skills, add a skill, and upload the zip. The method and the reference files work there; the scripts are written for a machine where Claude can run Node, Python and a browser.
 
-Then start a new session and ask for the job. For the scripts:
+Then start a new session and ask for the job. To set the scripts up after cloning:
 
 ```bash
 cd wordpress-to-webflow/skills/wordpress-to-webflow/scripts && npm install && npx playwright install chromium
