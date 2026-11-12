@@ -44,6 +44,10 @@ The scripts need Node 20 or later and, for some, Playwright; see `skills/wordpre
 
 No client content, no site ids, no keys, and no theme source code. Site-specific values live in a `site.config.json` you write per project; secrets live in a local `.env` that is never committed.
 
+## Licence
+
+MIT. See `LICENSE`.
+
 ## Status
 
 Version 0.1. The Webflow notes are dated November 2026; Webflow changes, so re-test a limit before leaning on it.
