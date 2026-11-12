@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img" aria-labelledby="t d">
+<title id="t">WordPress to Webflow</title>
+<desc id="d">A Claude skill for rebuilding a WordPress site in Webflow. The old site and the rebuild are drawn side by side with a difference strip between them.</desc>
+<rect x="0.75" y="0.75" width="878.5" height="298.5" rx="16" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
+<rect x="48" y="50" width="112" height="24" rx="12" fill="#1e1b4b"/>
+<text x="104" y="66.5" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="1.3" fill="#a5b4fc">CLAUDE SKILL</text>
+<text x="46" y="124" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="-0.8" fill="#f0f6fc">WordPress <tspan fill="#a5b4fc">to</tspan> Webflow</text>
+<text x="48" y="162" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="17" fill="#9198a1">Rebuild the site from its source, keep every URL,</text>
+<text x="48" y="186" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="17" fill="#9198a1">and prove the result by script.</text>
+<rect x="48" y="222" width="121" height="28" rx="6" fill="#161b22" stroke="#30363d"/>
+<text x="108.5" y="240.5" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#f0f6fc">10 gated phases</text>
+<rect x="179.0" y="222" width="134" height="28" rx="6" fill="#161b22" stroke="#30363d"/>
+<text x="246.1" y="240.5" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#f0f6fc">9 reference files</text>
+<rect x="323.2" y="222" width="88" height="28" rx="6" fill="#161b22" stroke="#30363d"/>
+<text x="367.2" y="240.5" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#f0f6fc">21 scripts</text>
+<rect x="524" y="44" width="130" height="200" rx="8" fill="#161b22" stroke="#545d68" stroke-width="1.5"/>
+<rect x="534" y="54" width="110" height="8" rx="4" fill="#21262d"/>
+<rect x="534" y="72" width="110" height="52" rx="5" fill="#21262d"/>
+<rect x="544" y="88" width="60" height="6" rx="3" fill="#545d68"/>
+<rect x="544" y="100" width="40" height="6" rx="3" fill="#545d68"/>
+<rect x="534.0" y="134" width="32.7" height="40" rx="4" fill="#21262d"/>
+<rect x="572.7" y="134" width="32.7" height="40" rx="4" fill="#21262d"/>
+<rect x="611.3" y="134" width="32.7" height="40" rx="4" fill="#21262d"/>
+<rect x="534" y="186" width="110.0" height="4" rx="2" fill="#21262d"/>
+<rect x="534" y="196" width="94.6" height="4" rx="2" fill="#21262d"/>
+<rect x="534" y="206" width="103.4" height="4" rx="2" fill="#21262d"/>
+<rect x="534" y="216" width="66.0" height="4" rx="2" fill="#21262d"/>
+<rect x="534" y="228" width="110" height="6" rx="3" fill="#21262d"/>
+<rect x="706" y="44" width="130" height="200" rx="8" fill="#161b22" stroke="#a5b4fc" stroke-width="1.5"/>
+<rect x="716" y="54" width="110" height="8" rx="4" fill="#1e1b4b"/>
+<rect x="716" y="72" width="110" height="52" rx="5" fill="#1e1b4b"/>
+<rect x="726" y="88" width="60" height="6" rx="3" fill="#a5b4fc"/>
+<rect x="726" y="100" width="40" height="6" rx="3" fill="#a5b4fc"/>
+<rect x="716.0" y="134" width="32.7" height="40" rx="4" fill="#1e1b4b"/>
+<rect x="754.7" y="134" width="32.7" height="40" rx="4" fill="#1e1b4b"/>
+<rect x="793.3" y="134" width="32.7" height="40" rx="4" fill="#1e1b4b"/>
+<rect x="716" y="186" width="110.0" height="4" rx="2" fill="#1e1b4b"/>
+<rect x="716" y="196" width="94.6" height="4" rx="2" fill="#1e1b4b"/>
+<rect x="716" y="206" width="103.4" height="4" rx="2" fill="#1e1b4b"/>
+<rect x="716" y="216" width="66.0" height="4" rx="2" fill="#1e1b4b"/>
+<rect x="716" y="228" width="110" height="6" rx="3" fill="#1e1b4b"/>
+<rect x="668" y="44" width="24" height="200" rx="6" fill="#161b22" stroke="#30363d"/>
+<rect x="675" y="54" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="64" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="74" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="84" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="94" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="104" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="114" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="124" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="134" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="144" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="154" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="164" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="174" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="184" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="194" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="204" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="214" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="224" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<rect x="675" y="234" width="10" height="2" rx="1" fill="#484f58" opacity="0.55"/>
+<circle cx="836" cy="44" r="13" fill="#3fb950" stroke="#0d1117" stroke-width="3"/>
+<path d="M830.5 44.5 l3.8 3.8 l7.2 -7.6" fill="none" stroke="#0d1117" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="589" y="264" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#9198a1">old site</text>
+<text x="680" y="264" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#9198a1">diff</text>
+<text x="771" y="264" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#9198a1">rebuild</text>
+</svg>

@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 322" width="880" height="322" role="img" aria-labelledby="t d">
+<title id="t">The ten phases and their gates</title>
+<desc id="d">Phase 0, Reference: Old site runs locally. Everything inventoried, counts generated. Phase 1, Design system: Tokens match the theme on both sides of every breakpoint. Phase 1b, Proof: Five risky assumptions settled on real content before scaling up. Phase 2, Import: Counts equal. A rerun changes nothing. Every asset resolves. Phase 3, Components: Each block sits within a few pixels of the reference. Phase 4, Pages: Every URL resolves and section order is checked by script. Phase 5, Behaviour: Checklist ticked in Chromium, Safari, iOS. Console clean. Phase 6, Redirects: Checker fails its fixture, then passes staging at 0 failures. Phase 7, Verification: Twelve checks at zero. Every difference listed with its reason. Phase 8, Cutover: Live checks pass, with the owner. Old host retired after 30 days.</desc>
+<rect x="2" y="2" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="16" y="16" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="30.0" y="35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">0</text>
+<text x="53" y="35.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Reference</text>
+<text x="17" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="17" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Old site runs locally.</text>
+<text x="17" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Everything inventoried,</text>
+<text x="17" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">counts generated.</text>
+<path d="M170.0 65.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="180" y="2" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="194" y="16" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="208.0" y="35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">1</text>
+<text x="231" y="35.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Design system</text>
+<text x="195" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="195" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Tokens match the theme</text>
+<text x="195" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">on both sides of every</text>
+<text x="195" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">breakpoint.</text>
+<path d="M348.0 65.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="358" y="2" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="372" y="16" width="34" height="28" rx="14" fill="#1e1b4b"/>
+<text x="389.0" y="35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">1b</text>
+<text x="415" y="35.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Proof</text>
+<text x="373" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="373" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Five risky assumptions</text>
+<text x="373" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">settled on real content</text>
+<text x="373" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">before scaling up.</text>
+<path d="M526.0 65.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="536" y="2" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="550" y="16" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="564.0" y="35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">2</text>
+<text x="587" y="35.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Import</text>
+<text x="551" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="551" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Counts equal. A rerun</text>
+<text x="551" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">changes nothing. Every</text>
+<text x="551" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">asset resolves.</text>
+<path d="M704.0 65.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="714" y="2" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="728" y="16" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="742.0" y="35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">3</text>
+<text x="765" y="35.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Components</text>
+<text x="729" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="729" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Each block sits within</text>
+<text x="729" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">a few pixels of the</text>
+<text x="729" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">reference.</text>
+<rect x="2" y="184" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="16" y="198" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="30.0" y="217" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">4</text>
+<text x="53" y="217.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Pages</text>
+<text x="17" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="17" y="267" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Every URL resolves and</text>
+<text x="17" y="283" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">section order is checked</text>
+<text x="17" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">by script.</text>
+<path d="M170.0 247.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="180" y="184" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="194" y="198" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="208.0" y="217" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">5</text>
+<text x="231" y="217.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Behaviour</text>
+<text x="195" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="195" y="267" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Checklist ticked in</text>
+<text x="195" y="283" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Chromium, Safari, iOS.</text>
+<text x="195" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Console clean.</text>
+<path d="M348.0 247.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="358" y="184" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="372" y="198" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="386.0" y="217" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">6</text>
+<text x="409" y="217.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Redirects</text>
+<text x="373" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="373" y="267" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Checker fails its</text>
+<text x="373" y="283" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">fixture, then passes</text>
+<text x="373" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">staging at 0 failures.</text>
+<path d="M526.0 247.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="536" y="184" width="164" height="136" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<rect x="550" y="198" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="564.0" y="217" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">7</text>
+<text x="587" y="217.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Verification</text>
+<text x="551" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="551" y="267" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Twelve checks at zero.</text>
+<text x="551" y="283" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Every difference listed</text>
+<text x="551" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">with its reason.</text>
+<path d="M704.0 247.0 l5 5 l-5 5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="714" y="184" width="164" height="136" rx="10" fill="#161b22" stroke="#a5b4fc" stroke-width="1.5"/>
+<rect x="728" y="198" width="28" height="28" rx="14" fill="#1e1b4b"/>
+<text x="742.0" y="217" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">8</text>
+<text x="765" y="217.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#f0f6fc">Cutover</text>
+<text x="729" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="1.1" fill="#3fb950">DONE WHEN</text>
+<text x="729" y="267" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">Live checks pass, with</text>
+<text x="729" y="283" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">the owner. Old host</text>
+<text x="729" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" fill="#9198a1">retired after 30 days.</text>
+<path d="M796.0 144 V153 a8 8 0 0 1 -8 8 H92.0 a8 8 0 0 0 -8 8 V178" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round"/>
+<path d="M79.0 174 l5 5 l5 -5" fill="none" stroke="#484f58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
