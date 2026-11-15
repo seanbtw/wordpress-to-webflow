@@ -8,7 +8,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-4f46e5"></a>
   <img alt="Works with Claude Code" src="https://img.shields.io/badge/works%20with-Claude%20Code-4f46e5">
-  <img alt="Status: working notes, version 0.1" src="https://img.shields.io/badge/status-working%20notes%20v0.1-59636e">
+  <a href="https://github.com/seanbtw/wordpress-to-webflow/releases/latest"><img alt="Status: working notes, latest release" src="https://img.shields.io/github/v/release/seanbtw/wordpress-to-webflow?label=working%20notes&color=59636e"></a>
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/seanbtw/wordpress-to-webflow?color=59636e">
 </p>
 
