@@ -18,7 +18,7 @@ A method for rebuilding a WordPress site in Webflow, written from a full migrati
 ## What this assumes you have
 
 - **The Webflow MCP server** connected, with its Designer companion ("MCP Bridge") app. Most building is done through it; `references/webflow-traps.md` names the tools. Calls that work with no Designer tab open are called *headless* here; some need the Designer open on the site with the Bridge launched.
-- **A browser you can drive** for the few Designer-only steps, signed in by the owner.
+- **A browser you can drive** for the few Designer-only steps, signed in by the owner. The steps themselves are yours to do, not the owner's (see "Decided by default").
 - **Docker**, Node 20 or later, Python 3, and Playwright for the local reference and the checks.
 - **The Webflow Data API v2** with a site token, for bulk CMS work.
 
@@ -34,11 +34,28 @@ These are the steps only a person can do. Ask for all of them at the start, sayi
 | The host's redirect rules export | The host's redirect settings | Redirects often live at the host, outside WordPress |
 | Read access to Search Console and analytics for a service account, if available | Search Console › Settings › Users and permissions | Which URLs and pages matter; the SEO baseline |
 | Brand fonts uploaded to the Webflow site | Site settings › Fonts | Fonts cannot be guessed |
-| The staging host (`<short-name>.webflow.io/*`) added to any referrer-restricted API key, such as maps | The key's settings in its cloud console | Otherwise maps fail on staging |
+| The staging host (`<short-name>.webflow.io/*`) added to any referrer-restricted API key, such as maps | The key's settings in its cloud console | Otherwise maps fail on staging. Can wait until review: it holds nothing else up |
 | A test-contact procedure for any live form or CRM provider | Agreed with whoever owns the CRM | No test submission before it exists |
-| Whether every original upload is to be kept at its old address, or only the files the site and Google use | A decision, early | The uploads folder is usually far bigger than what a rebuild stages; it decides how old file URLs are redirected (`references/redirects.md`) |
+| How oversized images are to be slimmed (re-encode smaller copies, or put a resizer in front of them) | A decision; can wait until Phase 7 | It changes what visitors download. Until answered, images stay as uploaded and the weight is reported |
+| Whether content types that no published page uses are migrated | A decision, before Phase 2 ends | It decides what content survives the move. Until answered, leave those types until last and say so |
 
 If something on this list is missing when the build starts, do not stop: park it, say so, and carry on with what does not depend on it. `references/phases.md` ("Running it unattended") gives the order.
+
+## Decided by default
+
+Do not ask the owner about these. Apply the default, record it in `PLAN.md` marked "default", and list the defaults in the first report so the owner can overturn one. An instruction from the owner always wins.
+
+| Question | Default |
+|---|---|
+| Is a site plan needed to build? | Run the Phase 0 pre-flight probe. If the site takes the pages and items without a plan, build without one and keep a single list of what waits for it (301 redirects, real search results, sitemap controls) |
+| Do old upload files keep their addresses? | Only the files the site, a redirect or Search Console shows in use. The rest stay where they are on the old host; report how many files and how much that is (`references/redirects.md`) |
+| Addresses Webflow forces to change | Change only those (a listing page whose path is also its collection's folder, the reserved `/search`), give each one exact redirect, and log it |
+| Search | Webflow's own site search, with the old results address redirected and the query carried over |
+| Maps and other keyed services | Reuse the key the old site uses. The owner's one step (the staging address added to the key) goes on the hand-off list |
+| Designer-only steps | Do them yourself through the browser: open the Designer and launch the Bridge app, open the 404 page once, add and delete a Search element, upload the site icon, finish Collection List settings. They never go on the owner's list; only a missing sign-in does |
+| An old address with no obvious new home | Redirect it to the nearest parent page, mark the row provisional, and list it for the owner to confirm before cutover |
+
+**Standing answers.** An owner with several sites answers some things once for all of them: house wording, which fonts are licensed, the form provider's account, hard limits on what may be touched. If the brief or the project folder names a standing-answers file, read it before Phase 0, copy what applies into `PLAN.md`, and do not ask those again. Keep that file out of any public repository.
 
 ## Working rules
 

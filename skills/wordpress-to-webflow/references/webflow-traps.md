@@ -149,7 +149,7 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - Static pages have a native "Schema markup" field, a safer home for per-page JSON-LD than shared head code.
 - **An untouched collection template does not publish**: its item URLs 404 until the template has content. A collection made by API gets a template with only a Body, so add at least the navigation and footer to every template.
 - **Webflow ignores query strings on `/`.** `/?p=<id>` always serves the home page with 200; no page or redirect can match it. Record it as an accepted difference.
-- **The 404 page has no id in the page list until it has been opened once in the Designer**, and the Search Results page does not exist until a Search element has been added (it can be deleted again). After those two clicks both are built like any page.
+- **The 404 page has no id in the page list until it has been opened once in the Designer**, and the Search Results page does not exist until a Search element has been added (it can be deleted again). After those two clicks both are built like any page. Make the clicks yourself through the browser at the start of the build.
 - **The site icon is one upload** (Site settings › General › Icons): one square image becomes the favicon, the touch icon and the larger app icons. There is no API route.
 - **Static-page text in the primary locale** can be fixed only through the Designer tools; the page DOM endpoint accepts secondary locales only.
 - **Required fields** are enforced on publish, not on drafts, and existing items are not re-validated.

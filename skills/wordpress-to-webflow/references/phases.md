@@ -18,18 +18,23 @@ Each phase ends with a "Done when" list. Print the list with the evidence beside
 
 ## Decisions to settle in PLAN.md
 
-Settle what is the owner's to decide before Phase 0. Record the technical ones as Phase 0 and Phase 1b establish them. Once a decision is recorded, do not reopen it mid-build:
+There are three kinds. **Defaults** (SKILL.md, "Decided by default") are applied and recorded without asking. **The owner's questions** (SKILL.md, "What to get from the site owner first") are asked once, before Phase 0, together with everything else on that list. **Technical ones** are recorded as Phase 0 and Phase 1b establish them. Once a decision is recorded, do not reopen it mid-build:
 
 - **New Webflow site**, native styles, classes, variables, components and CMS. One script file and one CSS file for what Webflow cannot do.
 - **The local WordPress is the reference**, not the live site.
-- **URL structure stays as WordPress has it.** CMS collection slugs equal the WordPress post-type slugs so item URLs match. List the unavoidable changes (for example Webflow reserves `/search`) and give each a redirect.
+- **URL structure stays as WordPress has it.** CMS collection slugs equal the WordPress post-type slugs so item URLs match. The changes Webflow forces are a default, not a question: a listing page whose path is also its collection's folder moves to a new slug, and Webflow reserves `/search`. Make only those, give each one exact redirect, and log it.
 - **Breakpoints follow the theme.** Record the theme's real screens.
 - **Forms**: keep the existing provider and form ids unless told otherwise.
 - **Filtering**: lists over 100 items need client-side filtering over the complete dataset, with old query-string links still working.
 - **Sliders and motion**: name the libraries. The theme's own options are the spec to match.
 - **SEO requirements** drawn from Search Console: which pages produce the clicks (verify those first and strictest), titles and descriptions unchanged, one `h1` per page, structured data, sitemap and robots policy.
-- **Uploads**: whether every original upload keeps an address, or only the files the site and Search Console show in use. This decides how old file URLs are redirected.
-- **What waits for the site plan**, if the build runs without one: 301 redirects, real search results, sitemap controls (see Phase 0, pre-flight).
+- **Search** (default): Webflow's own site search; the old results address is redirected with the query carried over.
+- **Maps and other keyed services** (default): reuse the key the old site uses. Adding the staging address to the key is the owner's step and goes on the hand-off list.
+- **Uploads** (default): only the files the site, a redirect or Search Console shows in use keep an address. The rest stay on the old host; record how many files and how much that is. If the owner asks for every original instead, that changes how old file URLs are redirected (`redirects.md`).
+- **Site plan** (default): if the pre-flight shows the site takes the build without one, build without one. Record what waits for it: 301 redirects, real search results, sitemap controls (see Phase 0, pre-flight).
+- **Old addresses with no obvious new home** (default): the nearest parent page, marked provisional and listed for the owner to confirm before cutover.
+- **Oversized images** (the owner's): re-encode smaller copies or put a resizer in front of them. Until answered, images stay as uploaded and Phase 7 reports the weight.
+- **Content types no published page uses** (the owner's): migrate them or not. Until answered, leave them until last.
 - **What is out of scope**: no new copy, no content pruning unless the owner asks.
 
 ## Phase 0: local reference, inventories, capability proof
@@ -38,7 +43,7 @@ Goal: the backup running locally exactly as the live site renders, a machine-rea
 
 **Pre-flight probe, first.** Before anything else, find out what this site and workspace will accept, by trying it: is the token present; does a third static page save; does a 51st CMS item save and publish; does a full publish to the staging address work; does the sitemap API answer (a 403 "plan doesn't support" is the usual first refusal); do Site settings show 301 redirects as available. Record the answers in `PLAN.md`. Do not read the limits off the pricing page: a blank site with no site plan took 15 collections, 372 items and 37 pages in one workspace, and refused only sitemap controls, 301 redirects and real search results. Delete the probe items and any probe collection afterwards.
 
-**Two manual steps the API cannot do**, both in the Designer, both needed before the utility pages can be built: open Pages › Utility pages › 404 once (it has no id in the page list until then), and add a Search element from the Add panel, then delete it (that creates the Search Results page). The site icon is one upload in Site settings › General › Icons: give it the largest square icon in the backup's root.
+**Two Designer steps the API cannot do.** Do them yourself through the browser at the start; they are not the owner's to do, and only a missing sign-in is a reason to park them. Both are needed before the utility pages can be built: open Pages › Utility pages › 404 once (it has no id in the page list until then), and add a Search element from the Add panel, then delete it (that creates the Search Results page). The site icon is one upload in Site settings › General › Icons: give it the largest square icon in the backup's root.
 
 Done when
 - Pre-flight answers recorded.
@@ -170,6 +175,7 @@ A long build can run in one session that is kept going until a completion condit
 
 - The condition names evidence: every "Done when" line shown true with output, the URL checker at zero failures, the behaviour checklist ticked, measurement reports present. It stops at the end of Phase 7.
 - **When a prerequisite is missing, park it and keep going**, in this order: everything local first (Phase 0, inventories, reference measurements); then whatever the pre-flight showed the site accepts; then the offline halves of plan-dependent work (the redirect file, the search page layout). Keep one list of what is parked and what each item is waiting for, and put it at the top of every report.
+- **The owner is asked once, before the run**, for what SKILL.md's owner list holds, and for nothing else. Defaults are applied and reported, not asked. A Designer-only step is done through the browser; if the browser is not signed in, the parked item is the sign-in, not the step.
 - After every context compaction, re-read `PLAN.md` and `PROGRESS.md` before doing anything else.
 - A step that needs the owner stays open until they answer; retrying it is not progress. Work on everything else meanwhile.
 - Never widen scope to pass: no deleting checks, no marking a difference accepted without a reason in an `accepted-differences.md` file, and accepted differences that lose content or behaviour need the owner's yes.

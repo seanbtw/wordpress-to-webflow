@@ -30,7 +30,7 @@ Ask in plain words. The skill loads only the part it needs.
 
 | You say | Claude does | Reads |
 |---|---|---|
-| "Move this WordPress site to Webflow." | Plans the ten phases, asks for the handful of things only the owner can provide, and starts with the local reference | [`SKILL.md`](skills/wordpress-to-webflow/SKILL.md), [`phases.md`](skills/wordpress-to-webflow/references/phases.md) |
+| "Move this WordPress site to Webflow." | Plans the ten phases, asks for the handful of things only the owner can provide, settles the routine questions by default, and starts with the local reference | [`SKILL.md`](skills/wordpress-to-webflow/SKILL.md), [`phases.md`](skills/wordpress-to-webflow/references/phases.md) |
 | "Turn these redirect rules into Webflow redirects." | Captures what the live site really does, builds the import file with Webflow's escaping, and proves it with a checker | [`redirects.md`](skills/wordpress-to-webflow/references/redirects.md) |
 | "Is the rebuild the same as the old site?" | Runs the structure, visual, behaviour, link, content, SEO and code-parity checks | [`verification.md`](skills/wordpress-to-webflow/references/verification.md) |
 | "Add schema markup to our Webflow site." | Builds JSON-LD from the site's own words and public records, places it where it is safest, and checks every page | [`structured-data.md`](skills/wordpress-to-webflow/references/structured-data.md) |

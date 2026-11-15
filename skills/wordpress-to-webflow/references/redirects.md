@@ -17,7 +17,7 @@ Classify the host rules as exact, wildcard, query-conditional, domain-conditiona
 
 **Resolve every destination through the host's rules first, then WordPress's own redirects, then the inventory**, so each row is one hop on the new site. The local copy never runs the host's rules: a rule's target can itself be redirected by a second host rule on live while the local copy answers 404, and a link logged as "404 on WordPress" may work on live for the same reason. The live capture shows the real chain; where the live site cannot be captured, simulate the host rules in order (`build-redirects.py` does both). Renamed posts resolve through the local copy's old-slug redirects.
 
-**Old upload files need their own decision.** One wildcard from the uploads folder to the new media host only works if every file is staged at the same path, and an uploads folder (16,500 files and 7.6 GB on one site, some over the asset host's size limit) is far bigger than what a rebuild stages. Otherwise write a rule per file that Search Console or a redirect points at, copy any of those that are missing to storage you control, and ask the owner early whether all originals should be kept.
+**Old upload files need their own decision.** One wildcard from the uploads folder to the new media host only works if every file is staged at the same path, and an uploads folder (16,500 files and 7.6 GB on one site, some over the asset host's size limit) is far bigger than what a rebuild stages. Otherwise write a rule per file that Search Console or a redirect points at, and copy any of those that are missing to storage you control. That is the default: the other originals stay on the old host, and the report says how many files and how much that is. Stage every original only if the owner asks for it.
 
 ## Webflow redirect behaviour (tested on staging, Premium plan)
 
@@ -43,7 +43,7 @@ Classify the host rules as exact, wildcard, query-conditional, domain-conditiona
 - Search: the old results path and query parameter → Webflow's `/search?query=`.
 - Taxonomy archive URLs → the filtered listing, with the filter carried in the query string and a shim in the page script that understands the old parameter names.
 - Root icons (`/favicon.ico`, `/apple-touch-icon.png`) if the old site served them.
-- High-impression URLs that 404 today: redirect to the closest live page, and tell the owner.
+- Old addresses with no obvious new home (a page for someone who has left, a retired post, a high-impression URL that 404s today): redirect to the nearest parent page, mark the row provisional, and list it for the owner to confirm. Do not hold the file back for the answer.
 
 ## The checker
 
