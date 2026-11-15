@@ -42,7 +42,7 @@ def banner(p):
     s.append(f'<text x="48" y="186" font-family="{SANS}" font-size="17" fill="{p["muted"]}">and prove the result by script.</text>')
     # facts row
     x = 48
-    for label in ('10 gated phases', '9 reference files', '21 scripts'):
+    for label in ('10 gated phases', '9 reference files', '24 scripts'):
         w = 22 + len(label) * 6.6
         s.append(f'<rect x="{x}" y="222" width="{w:.0f}" height="28" rx="6" fill="{p["panel"]}" stroke="{p["line"]}"/>')
         s.append(f'<text x="{x + w/2:.1f}" y="240.5" text-anchor="middle" font-family="{SANS}" font-size="12.5" font-weight="600" fill="{p["ink"]}">{esc(label)}</text>')
@@ -68,9 +68,9 @@ def banner(p):
 PHASES = [
  ('0',  'Reference',     ['Old site runs locally.', 'Everything inventoried,', 'counts generated.']),
  ('1',  'Design system', ['Tokens match the theme', 'on both sides of every', 'breakpoint.']),
- ('1b', 'Proof',         ['Five risky assumptions', 'settled on real content', 'before scaling up.']),
+ ('1b', 'Proof',         ['Six risky assumptions', 'settled on real content', 'before scaling up.']),
  ('2',  'Import',        ['Counts equal. A rerun', 'changes nothing. Every', 'asset resolves.']),
- ('3',  'Components',    ['Each block sits within', 'a few pixels of the', 'reference.']),
+ ('3',  'Components',    ['Each block measures', 'equal to the theme,', 'by script.']),
  ('4',  'Pages',         ['Every URL resolves and', 'section order is checked', 'by script.']),
  ('5',  'Behaviour',     ['Checklist ticked in', 'Chromium, Safari, iOS.', 'Console clean.']),
  ('6',  'Redirects',     ['Checker fails its', 'fixture, then passes', 'staging at 0 failures.']),
@@ -117,7 +117,7 @@ def social(p):
     s.append(f'<text x="80" y="392" font-family="{SANS}" font-size="27" fill="{p["muted"]}">Rebuild the site from its source, keep every URL,</text>')
     s.append(f'<text x="80" y="428" font-family="{SANS}" font-size="27" fill="{p["muted"]}">and prove the result by script.</text>')
     x = 80
-    for label in ('10 gated phases', '9 reference files', '21 scripts'):
+    for label in ('10 gated phases', '9 reference files', '24 scripts'):
         w = 34 + len(label) * 10.2
         s.append(f'<rect x="{x}" y="478" width="{w:.0f}" height="44" rx="9" fill="{p["panel"]}" stroke="{p["line"]}" stroke-width="1.5"/>')
         s.append(f'<text x="{x + w/2:.1f}" y="507" text-anchor="middle" font-family="{SANS}" font-size="19.5" font-weight="600" fill="{p["ink"]}">{esc(label)}</text>')

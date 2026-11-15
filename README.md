@@ -14,9 +14,9 @@
 
 A [Claude skill](https://docs.claude.com/en/docs/claude-code/skills) for rebuilding a WordPress site in Webflow so that it looks and behaves the same, keeps every URL that matters, and stays editable by the site's own team.
 
-It was written from one full migration (about 500 CMS items, 30 pages and 24 theme blocks) and three follow-up structured-data jobs. It holds the method, a gate for every phase, the Webflow limits met along the way with their workarounds, and the scripts that did the checking.
+It was written from one full migration (about 500 CMS items, 30 pages and 24 theme blocks), three follow-up structured-data jobs, and a second site on the same theme (about 370 items, 37 pages) built in one overnight run. It holds the method, a gate for every phase, the Webflow limits met along the way with their workarounds, and the scripts that did the checking.
 
-**Contents:** [Why](#why-it-exists) · [What you can ask](#what-you-can-ask) · [The method](#the-method) · [Phases](#ten-phases-each-with-a-gate) · [What is inside](#what-is-inside) · [Scripts](#the-scripts) · [Traps](#ten-traps-that-cost-the-most-time) · [Install](#install) · [Limits](#honest-limits)
+**Contents:** [Why](#why-it-exists) · [What you can ask](#what-you-can-ask) · [The method](#the-method) · [Phases](#ten-phases-each-with-a-gate) · [What is inside](#what-is-inside) · [Scripts](#the-scripts) · [Traps](#the-traps-that-cost-the-most-time) · [Install](#install) · [Limits](#honest-limits)
 
 ## Why it exists
 
@@ -46,7 +46,7 @@ The schema markup part works on any Webflow site, migrated or not.
 2. **Inventory before building.** Every page, post, field, option, asset, URL and SEO value goes into machine-readable files. Acceptance counts are generated from them, never typed.
 3. **Prove the risky parts small.** Component boundaries, body conversion, curated lists, filtering past 100 items and search are settled on a handful of real examples before anything is built at scale.
 4. **Import so it can be rerun.** Identity is the WordPress id, not the slug, so the same import runs again at cutover without creating duplicates.
-5. **Verify by script, with evidence.** A claim without output (counts, command results, file paths, screenshots) does not count as done.
+5. **Verify by script, with evidence.** Differences are found by comparing code and measured values, never pictures. A claim without output (counts, command results, measured values, file paths) does not count as done.
 
 ## Ten phases, each with a gate
 
@@ -62,12 +62,12 @@ The schema markup part works on any Webflow site, migrated or not.
 
 | Phase | What happens | Done when |
 |---|---|---|
-| 0 Reference | The backup runs locally; pages, posts, options, assets, URLs and SEO values are inventoried | Counts are generated, reference screenshots exist, the tools are proven on a throwaway |
+| 0 Reference | The backup runs locally; pages, posts, options, assets, URLs and SEO values are inventoried | Counts are generated, reference measurements exist, the tools are proven on a throwaway |
 | 1 Design system | Colours, type, spacing and buttons from the theme's own tokens | The numbers match on both sides of every breakpoint |
-| 1b Proof | Five small proofs on real content | Each has a decision, a staging URL and a screenshot |
+| 1b Proof | Six small proofs on real content | Each has a decision, a staging URL and the output that shows it |
 | 2 Import | Collections, two-pass import, media, SEO fields | Counts are equal, a rerun changes nothing, every asset resolves |
-| 3 Components | Blocks become components or page-owned shells | Each sits within a few pixels of the reference |
-| 4 Pages | Pages and templates composed from a generated map | Every URL resolves and section order is checked by script |
+| 3 Components | Blocks become components or page-owned shells, compiled from the rendered theme where possible | Each measures equal to the reference |
+| 4 Pages | Pages and templates composed from a generated map | Every URL resolves; section and heading order are checked by script |
 | 5 Behaviour | One script and one stylesheet for what Webflow cannot do | The behaviour checklist is ticked in Chromium, Safari and iOS, console clean |
 | 6 Redirects | URL manifest, redirects, head tags, sitemap, structured data | The checker fails its fixture, then passes staging with zero failures |
 | 7 Verification | Twelve checks, editor acceptance, the new-item test | Every check is at zero and every remaining difference is listed with its reason |
@@ -81,7 +81,7 @@ The schema markup part works on any Webflow site, migrated or not.
 skills/wordpress-to-webflow/
 ├── SKILL.md                       the method, what to ask the owner for, where to look
 ├── references/                    nine files, loaded only when needed
-├── scripts/                       21 config-driven scripts
+├── scripts/                       24 scripts, config-driven
 └── assets/                        an example config file
 ```
 
@@ -90,7 +90,7 @@ skills/wordpress-to-webflow/
 | [`phases.md`](skills/wordpress-to-webflow/references/phases.md) | What does each phase involve, and what must be true before the next one starts? |
 | [`wordpress-side.md`](skills/wordpress-to-webflow/references/wordpress-side.md) | How do I run the backup locally, what do I inventory, and what does WordPress do that its exports don't show? |
 | [`import.md`](skills/wordpress-to-webflow/references/import.md) | Which Webflow field does each custom field become, and how do I import items, media and long-form bodies safely? |
-| [`webflow-traps.md`](skills/wordpress-to-webflow/references/webflow-traps.md) | Why did the API refuse, drop or lose my change, and what works instead? About 100 findings on styles, breakpoints, Collection Lists, components, slots, bindings, head code, search and the sitemap |
+| [`webflow-traps.md`](skills/wordpress-to-webflow/references/webflow-traps.md) | Why did the API refuse, drop or lose my change, and what works instead? About 135 findings on styles, breakpoints, Collection Lists, components, slots, bindings, head code, search, the sitemap, and what a site with no site plan will and will not do |
 | [`redirects.md`](skills/wordpress-to-webflow/references/redirects.md) | Which old URLs matter, how does Webflow's redirect syntax really behave, and how do I prove nothing is lost? |
 | [`verification.md`](skills/wordpress-to-webflow/references/verification.md) | How do I show the rebuild matches, and which differences are only noise? |
 | [`structured-data.md`](skills/wordpress-to-webflow/references/structured-data.md) | What JSON-LD belongs on each page, where does it go in Webflow, how do I publish without shipping someone else's work, and how does Wikidata fit in? |
@@ -103,6 +103,9 @@ All of them read one `site.config.json` (start from [`site.config.example.json`]
 
 | Question | Script |
 |---|---|
+| Is the unpacked backup complete, with no file lost to a capital letter? | `archive-check.py` |
+| Is this block the same as the theme's, value by value? | `measure-blocks.mjs` |
+| Does every page have the sections the old one has, in order? | `heading-sequence.mjs` |
 | What does the old site really do with each URL? | `live-capture.mjs` |
 | What paths does the new site serve? | `staging-paths.mjs` |
 | What goes in Webflow's redirect import? | `build-redirects.py` |
@@ -120,7 +123,7 @@ All of them read one `site.config.json` (start from [`site.config.example.json`]
 
 Browser checks block common trackers and form submissions by default, so a test run cannot create a real lead.
 
-## Ten traps that cost the most time
+## The traps that cost the most time
 
 <details>
 <summary>Show them</summary>
@@ -135,6 +138,9 @@ Browser checks block common trackers and form submissions by default, so a test 
 8. CMS templates print no Open Graph or Twitter tags unless you add them.
 9. Items an editor creates lack importer-only fields. Anything keyed on those fields silently drops new items.
 10. The old site holds redirects and behaviour its exports don't show. Capture what the live site actually does.
+11. The API reports success for writes it did not store: classes with no style behind them, some bindings, `unset` values, shorthand grid properties. Read back, then measure.
+12. A site with no site plan builds and publishes to staging, but refuses 301 redirects and sitemap controls and shows only sample search results. Those checks move to cutover.
+13. A template measured in part hides what is missing from the rest. Measure whole templates, and crawl every page's heading order early.
 
 The full list, with the workaround for each, is in [`webflow-traps.md`](skills/wordpress-to-webflow/references/webflow-traps.md).
 
@@ -181,9 +187,9 @@ cd wordpress-to-webflow/skills/wordpress-to-webflow/scripts && npm install && np
 
 ## Honest limits
 
-- **It has been through one full migration.** The scripts were generalised from the ones used there and exercised against test fixtures, not yet against a second real site.
-- **Webflow moves.** The limits were observed on a Premium site plan in November 2026, and a few changed within a day. Re-test one with a throwaway write before leaning on it.
-- **It does not ship an importer, an inventory generator or a behaviour test suite.** Those depend on each site's theme and content model. The skill says what each must do.
+- **It has been through two migrations, both of sites on the same theme.** The second build ran its own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures, not yet end to end against a real site.
+- **Webflow moves.** The limits were observed in November 2026 on a Premium site plan and on a site with no plan; a few changed within a day, and a few differed between the two builds. Re-test one with a throwaway write before leaning on it.
+- **It does not ship an importer, an inventory generator, a block compiler or a behaviour test suite.** Those depend on each site's theme and content model. The skill says what each must do.
 - **It never writes copy.** Every word on the rebuilt site, and every string in the structured data, comes from the old site or a public record.
 - **Cutover is done with the site's owner present.** The skill will not move DNS or publish to a live domain on its own.
 

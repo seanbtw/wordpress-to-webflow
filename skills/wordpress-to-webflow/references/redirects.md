@@ -7,16 +7,22 @@ One file, `verify/url-manifest.csv`, with every source URL and what should happe
 Sources, all of them:
 
 - `inventory/urls.csv` (every public URL the local WordPress exposes, and the sitemap)
-- the host's exported redirect rules, every enumerable source
+- the host's exported redirect rules, every enumerable source. If the host's portal has no export button, the rules are still on the page: read them out of the page's own data in the owner's signed-in browser rather than retyping them. Ask which rules are short links used in printed or emailed material; those matter out of proportion to their traffic
 - **what the live site actually does**: run `scripts/live-capture.mjs` over the list. WordPress holds redirects of its own (plugins, old slugs, canonical redirects) that are not in the host's export, and chains through them are common
-- **every Search Console URL with 10 or more impressions**, with its live final destination, including URLs that 404 today but still get clicks
+- **every Search Console URL with 10 or more impressions**, with its live final destination, including URLs that 404 today but still get clicks. Pull these before building the file: they are its real test. On one site, 54 of the 199 URLs Google had shown had no answer on the new site after the host rules were applied: files in the uploads folder (one PDF with 70 clicks), pages of people who had left, archive pagination, renamed posts
 - any earlier crawl or URL list from a previous attempt
 - every slug Webflow altered during import, and every deliberate path change
 
 Classify the host rules as exact, wildcard, query-conditional, domain-conditional or external. Preserve external targets. Record a disposition for every rule whose target no longer exists; never drop one silently.
 
+**Resolve every destination through the host's rules first, then WordPress's own redirects, then the inventory**, so each row is one hop on the new site. The local copy never runs the host's rules: a rule's target can itself be redirected by a second host rule on live while the local copy answers 404, and a link logged as "404 on WordPress" may work on live for the same reason. The live capture shows the real chain; where the live site cannot be captured, simulate the host rules in order (`build-redirects.py` does both). Renamed posts resolve through the local copy's old-slug redirects.
+
+**Old upload files need their own decision.** One wildcard from the uploads folder to the new media host only works if every file is staged at the same path, and an uploads folder (16,500 files and 7.6 GB on one site, some over the asset host's size limit) is far bigger than what a rebuild stages. Otherwise write a rule per file that Search Console or a redirect points at, copy any of those that are missing to storage you control, and ask the owner early whether all originals should be kept.
+
 ## Webflow redirect behaviour (tested on staging, Premium plan)
 
+- **A site with no site plan cannot hold redirects at all** ("301 redirects are not supported on unhosted sites"). Build the import file and check it offline (every target a real page, no target that is itself a source), and move the import and the checker's redirect rows to cutover.
+- Webflow recommends at most 1,000 redirects per site (not a hard limit).
 - **The redirect and robots.txt APIs are Enterprise-only** (403 on other plans). Use Site settings › Publishing › 301 redirects › Import with a CSV whose header is `source,target`.
 - **An import replaces every existing redirect.** Always import the complete set.
 - The import runs asynchronously; an "Import in progress" toast confirms the click landed. Verify by the dashboard list and then by the checker.

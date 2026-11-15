@@ -1,7 +1,7 @@
 {
   "name": "wordpress-to-webflow",
   "description": "Rebuild a WordPress site in Webflow: method, phase gates, Webflow limits and workarounds, redirect and verification scripts.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "seanbtw"
   },

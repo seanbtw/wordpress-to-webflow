@@ -10,7 +10,8 @@ Find the equivalent of each of these in your theme before Phase 1.
 
 - **Screens were custom, not the framework's defaults**, with steps at 1200 and 1500 that Webflow has no breakpoint for. Webflow's 992, 768 and 480 lined up with three of the theme's screens; the others went in the CSS file or used the clamp switch.
 - **Every slider was Flickity** (with its fade add-on). The options in each block's script were the spec. A replacement library must copy what Flickity does: autoplay that wraps even without wrap-around, and autoplay stopping on drag. Whether autoplay pauses on hover is a choice to confirm with the owner (Flickity's default is to pause).
-- **Some blocks were chosen by user agent** (`wp_is_mobile`).
+- **Some blocks were chosen by user agent** (`wp_is_mobile`), and containers had a "hide on mobile / tablet / desktop" option decided on the server by a device-detection library. On a second site, the home page served a different section to phones and tablets.
+- **Core block columns** wrapped below 782px, a width neither the theme's screens nor Webflow has.
 - **Every `ul` under the article wrapper got bullets and spacing**, every container set its own text colour (dark and light variants), and a global paragraph size beat a larger parent. These went into the CSS file before any block was built.
 - **The picture helper printed the attachment title as alt** when alt was empty.
 - **Card excerpts** were the first 15 words of the body and could contain links.
@@ -35,7 +36,15 @@ Find the equivalent of each of these in your theme before Phase 1.
 | Post slider | Page-owned shell plus Collection List(s) of a card component; optional call-to-action end slide | Card props bound to CMS fields; tag list in a slot; slide widths per breakpoint from CSS; options as combo classes |
 | Card slider | The post slider shell with static card slides | No new script |
 | Image carousel | Not built (no placements) | Its theme script equalled the hero slider's, so that module is the starting point |
-| Rich text bodies | CMS RichText with conversion rules | Lead text → blockquote; special paragraph classes, theme buttons, tables and rules as small embeds |
+| Rich text bodies | CMS RichText with conversion rules | Lead text in a paragraph → blockquote; lead text inside a heading stays a heading, as a small embed; special paragraph classes, theme buttons, tables and rules as small embeds |
+
+## What a second site on the same theme changed
+
+- The block list and the vendor code were identical; 81 theme files differed. The button package was byte-identical, so the button component carried over, but the compiled button rules were not: a new top margin on label and icon spans, another line height, one more colour variant. None of that showed in a differing template.
+- The type scale was the site's own: one class added, two missing, a different heading weight, letter-spacing on one class only.
+- No mega menu and a callback panel in the navigation; the footer had no props because there was one footer.
+- The static hero gained a variant for pages with an in-page navigation above it, and its image layer was fixed so the next block scrolled over it.
+- Blocks were compiled from the rendered theme rather than hand-built (see `phases.md`, Phase 3); buttons and spacers compiled to their components.
 
 Why components versus shells: anything whose items come from the CMS and differ per placement (curated or filtered lists) is a page-owned shell plus a list; repeated fixed structures are components.
 

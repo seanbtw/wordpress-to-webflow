@@ -13,21 +13,30 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 
 ## Measuring
 
+**Differences are found by measuring and by comparing code, never by comparing pictures.** A picture comparison says that something differs and not what; it passes a wrong value that happens to look close, and it cannot be rerun as a test. The measurements are: computed styles and boxes per element (`scripts/measure-blocks.mjs`), the order of sections and headings per page (`scripts/heading-sequence.mjs`), text, link and media sets (`scripts/compare-bodies.mjs`, `scripts/crawl-links.mjs`), and head tags (`scripts/seo-check.mjs`, `scripts/code-parity.py`). Screenshots may be kept as a record for the person reviewing.
+
 - **Measure against the local WordPress at the same width, both sides of every breakpoint**: 390, 479/480, 767/768, 991/992, each of the theme's further steps and the pixel below it (for example 1199/1200), 1440 and 1920. This caught wrong breakpoints, missing steps, a line-height coming from an inline span, a slider overriding widths, clamp and paragraph sizes, tag padding and button geometry.
 - **Use the theme's own numbers** (compiled CSS, block options) as the expected values, and the browser's computed values on both sites as the measurement.
 - **Force lazy images eager and decoded** before measuring or capturing.
 - **Keep block order equal to the reference page's** when measuring a block in isolation; some theme behaviour depends on neighbours.
+- **Measure every element that has its own text, media, a background, a background image or a border**, paired by position in document order. A walk that only looks at text passed an icon button with the wrong background. Walk through zero-size wrappers (`<picture>`, an inline link): their children are visible.
+- **Scroll instantly.** Themes set `scroll-behavior: smooth`; a block scrolled into view smoothly is still moving when its boxes are read.
+- **Cache-bust the Webflow side only.** A query parameter on the WordPress side can change the page (a listing that reads every parameter as a filter).
+- **Count a button as one item on both sides.** A theme button is one element; its Webflow replacement may be a link plus a label span, which shifts every later pairing. Treat anything pill-shaped, and whatever `checks.measure.oneItemSelector` names, as one item: its box, its label's type and its colours.
+- **Measure phones with a phone user agent** as well as a phone width, for themes that choose markup on the server.
+- **Measure whole templates.** Give the measurement the template's whole content wrapper. A template measured on one block looked finished while three sections were missing from every item.
+- **A large mismatch count after a small change is usually one shifted pairing**, not thousands of faults (82,945 checks gave 26,568 mismatches after one element lost its box to `display: contents`). Fix the first mismatch and rerun before reading the rest.
 
 ## The Phase 7 checks
 
 1. **Structure**: component sequence per page equals the composition map, by script.
-2. **Visual**: one comparison sheet per page and template example: reference left, Webflow right, pixel-diff strip between, at 390, 768, 1200, 1440 and 1920, captured with the reference settings, plus the defined scroll-state captures. Review every sheet. **Triage by page height difference first** (lost or added content), then by percentage of differing pixels.
+2. **Measured layout**: every static page and template example measured whole against the local WordPress at 390, 768, 1200, 1440 and 1920 and both sides of each breakpoint, plus each fixed or sticky layout at a defined scroll position; the heading-order crawl over every path. **Triage by page height difference first** (lost or added content), then by the first mismatch on each page. Zero mismatches, or each one in the accepted-differences file.
 3. **Behaviour and accessibility**: the behaviour checklist, every line ticked with width and browser, including real Safari and iOS Safari. Menus, search, forms, sliders, accordions, filters, sticky elements, modals, maps, keyboard focus, reduced motion.
 4. **Console**: no errors on any page at any width (`scripts/console-check.mjs`).
 5. **Links and media**: crawl staging (`scripts/crawl-links.mjs`): zero broken internal links; zero references to the old host or to localhost in HTML, `srcset`, CSS backgrounds, embeds or JSON-LD; then crawl again with requests to the old host blocked and confirm nothing visible breaks.
 6. **URLs**: `scripts/check-urls.mjs` at zero failures.
 7. **Content**: automated body comparison at 100% (`scripts/compare-bodies.mjs`), `scripts/glued-words.mjs` over every page, plus side-by-side spot checks of a sample of each type.
-8. **SEO** (`scripts/seo-check.mjs`): exactly one `h1`; title and description equal the inventory; JSON-LD parses and validates; Open Graph tags present on templates; sitemap lists what it should and nothing else.
+8. **SEO** (`scripts/seo-check.mjs`): exactly one `h1`; title and description equal the inventory; JSON-LD parses and validates; Open Graph tags present on templates; sitemap lists what it should and nothing else. **Alt text**: compare per page by placement in the served HTML, keyed by file (strip WordPress size suffixes, `-scaled` and Webflow's asset-id prefix), leaving out hidden helper images, and with WordPress's own faults in mind: an alt cut short at a double quote, and a theme that prints the attachment title when alt is empty.
 9. **Performance**: Lighthouse mobile on the home page, a media-heavy item, an article and the heaviest listing. Fix layout shift from fonts.
 10. **Code parity**: see below.
 11. **Editor acceptance**: through the Designer or Editor, change a hero, replace a gallery image, reorder a curated list, publish a new article, with no code change. The agent does it and records how; the owner repeats it at review. Then run the new-item test below.
@@ -59,8 +68,8 @@ Tell editors what is automatic and what is not: automatic lists pick new items u
 
 - A one-line text wrap flipping at an exact breakpoint.
 - The old site's fixed header covering click targets in tests.
-- Large pixel differences with equal page heights were always sliders mid-transition or lazy images and iframes not loaded in the capture, on either side. Confirm in a browser before fixing anything.
-- Video embeds render as black blocks in static captures.
+- Differences confined to a slider or a lazy image, with equal page heights, were always a slider mid-transition or media not yet loaded, on either side. Turn reduced motion on, force lazy images eager, and measure again before fixing anything.
+- Headings inside slider tracks differ between slider libraries (one hides off-screen slides from assistive technology, another does not). Leave slider tracks out of the heading crawl and cover sliders with the block measurement and the behaviour suite.
 - Staging and live HTML differ in compiled CSS names and Webflow attributes; strip the Webflow runtime tags and `data-wf-*` before comparing bodies.
 - Map errors on staging when the key is restricted to the live domain: environment, not a regression.
 

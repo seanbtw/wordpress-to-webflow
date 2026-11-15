@@ -25,8 +25,8 @@ Every indexable page carries:
 
 Then per page type:
 
-- inner static pages: `WebPage` (or `AboutPage`, `ContactPage`, `CollectionPage`) plus `BreadcrumbList`
-- articles: `Article` or `BlogPosting` with headline, dates, image, and an author. Head-code placeholders cannot read fields of a referenced item, so a `Person` author cannot be server-rendered from an author reference. Either copy the author's name and role into plain fields on the article at import and bind those, or print the Organization as author and let a script upgrade it to a `Person` from data on the page (seen by Google, not by crawlers that skip JavaScript)
+- inner static pages: `WebPage` (or `AboutPage`, `ContactPage`, `CollectionPage`) plus `BreadcrumbList`. On a migrated site, take each breadcrumb name from the list the old SEO plugin already printed for that URL (HTML-decoded), so no wording is invented
+- articles: `Article` or `BlogPosting` with headline, dates, image, and an author. Head-code placeholders cannot read fields of a referenced item, so a `Person` author cannot be server-rendered from an author reference. Either copy the author's name and role into plain fields on the article at import and bind those, or print the Organization as author and let a script upgrade it to a `Person` from data on the page (seen by Google, not by crawlers that skip JavaScript). Head code has no conditionals, and an embed hidden by CSS still prints, so "a Person when there is an author, otherwise the Organization" has no server-rendered route: keep the Organization as the HTML default and say so in the report
 - people: `Person` from what the page shows and nothing more (name and role; `sameAs` only when a profile link exists)
 - projects and case studies: `CreativeWork` with name, headline, description, image, location, `creator` → the Organization id
 - services: `Service` with `provider` → the Organization id
@@ -48,7 +48,9 @@ Least invasive first:
 2. **CMS templates: template custom code with field placeholders**, so the block is server-rendered per item (see `webflow-traps.md`, "Pages, templates and head code"). Append to what is there; if the head already holds other scripts, an empty footer block is a safe home.
 3. **Site head code** only if the above cannot do it. The API replaces the whole block: read it, save a backup copy, and write back everything that was there plus yours. A site token needs the custom-code scope for this (403 without it); the MCP can write it instead.
 
-Placeholders are HTML-escaped but not JSON-escaped: **a line break in a bound field makes that item's JSON invalid.** Check every item, and tell the owner which fields must stay on one line.
+Placeholders are HTML-escaped but not JSON-escaped: **a line break in a bound field makes that item's JSON invalid.** Check every item, and tell the owner which fields must stay on one line. HTML-escaping also means an `&` in a name is printed as `&amp;` inside the JSON: valid JSON, wrong text for a reader that does not decode it. List the items it affects.
+
+Keep the JSON-LD records in page and template head code, one per page type, written by one generator script; never in the site-wide head code, which other people's scripts share.
 
 Script-built JSON-LD (for example an FAQ block assembled in the browser) is read by Google but not by crawlers that don't run JavaScript. Prefer server-rendered blocks.
 

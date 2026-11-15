@@ -1,9 +1,12 @@
 # Webflow limits and workarounds
 
-Observed in November 2026 through the Webflow Data API v2 and the Webflow MCP (with its Designer "Bridge" app), on a Premium site plan. Webflow changes; several of these flipped within a day. Before relying on one, re-test it with a throwaway write, and record what you find in `LEARNINGS.md`.
+Observed in November 2026 through the Webflow Data API v2 and the Webflow MCP (with its Designer "Bridge" app), on a Premium site plan and, in a second build, on a site with no site plan. Webflow changes; several of these flipped within a day, and a few behaved differently between the two builds (both are given where they did). Before relying on one, re-test it with a throwaway write, and record what you find in `LEARNINGS.md`.
+
+**The rule that covers most of this file: read back what you wrote.** Many of the faults below return "success".
 
 ## Contents
 - Words and tools used here
+- A site with no site plan
 - Write conflicts: the rules that prevent them
 - Styles and selectors
 - Breakpoints
@@ -23,6 +26,16 @@ Observed in November 2026 through the Webflow Data API v2 and the Webflow MCP (w
 - **WHTML**: the MCP's HTML-in builder (`data_whtml_builder`), which turns an HTML string plus a css block into Webflow elements. Fast for static markup, weaker for anything you must write to later.
 - **Element builder**: `data_element_builder`, which creates elements one tree at a time by type. Slower, but its elements stay writable.
 - **Tools named below**: `data_element_tool` (query, move, `set_text`, `set_tag`), `data_element_settings_tool` (`set_settings`, `get_settings`, `get_bindable_sources`; takes `scope_component_id` for elements inside a component definition), `data_style_tool` (`create_style`, `update_style`, `remove_properties`), `data_component_builder` and `data_component_tool` (`transform_element_to_component`, `insert_in_slot`, `set_component_instance_prop_values`, `get_component_instance_props`), `data_pages_tool` (`create_page` with `duplicateOf`, `set_page_freeform_code`), `data_cms_tool`, `data_sitemap_tool`, `designer_tool` (`get_selected_element`, select). Call `webflow_guide_tool` once per session first. Tool and action names drift between MCP versions; check the tool list if one is refused.
+
+## A site with no site plan
+
+Seen on an unhosted site in a workspace on a freelancer-type plan; limits depend on the workspace, so probe rather than trust this list (`phases.md`, Phase 0).
+
+- **Worked**: 15 collections, 372 CMS items (345 published), 37 static pages, full publishes to the webflow.io address, custom code, saving `robots.txt`.
+- **Refused**: sitemap indexing controls (403, "Site plan doesn't support sitemap indexing controls"); 301 redirects (Site settings › Publishing says they are not supported on unhosted sites).
+- **Site Search returns ten sample results** with a notice, so the search page can be built and laid out but not tested for real results. "Index now" and the results length wait for the plan.
+- **A Collection List of the template's own collection published empty on a template page** ("No items found.") when built by API, with or without a sort, though the same settings rendered on a static page and on the paid site. Cause not found. Prove it early (`phases.md`, Phase 1b) and keep the listing-page route in reserve.
+- **Publishing is limited to once a minute per site** (429 with a retry time), on any plan. Batch edits, then publish once.
 
 ## Write conflicts: the rules that prevent them
 
@@ -46,7 +59,12 @@ The costliest fault met was `[Conflict] … component map`: attribute, text and 
 - **A combo's base value beats its parent's breakpoint values** (`.a.b{}` outranks `.a` inside a media query). Repeat smaller breakpoints on a combo only when they must differ.
 - **Global paragraph and heading margin rules beat element classes.** Where the theme forces a margin to zero, mirror it with `!important` in the CSS file.
 - An `update_style` with a breakpoint id the site doesn't have is accepted silently and does nothing.
-- A component variant renders its class only when it carries a style; the class lands on the styled element itself (`.cls.w-variant-<id>`).
+- A component variant renders its class only when it carries a style; the class lands on the styled element itself (`.cls.w-variant-<id>`). A steadier hook: Webflow prints the chosen variant on the instance root as `data-wf--<component>--variant="<variant-slug>"`.
+- **`unset` and `initial` are dropped without an error.** A "stop this below the tablet width" rule written as `prop: unset` simply vanishes. Write the property's real initial value (`grid-template-columns: none`, `padding-left: 0px`, `justify-content: flex-start`, the tag's own `display`).
+- **A `grid-column` or `grid-row` shorthand is stored as its start only.** A breakpoint `grid-column: auto` leaves the base `grid-column-end: span 8` in force. Write both longhands.
+- **A CSS custom property in a class's CSS becomes one site-wide variable.** `--slide-width: 25%` on one slider and `28.57%` on another end up as the same value, the last one written. Write the resolved value into the rule.
+- **The HTML builder takes only `:hover`, `:focus` and `:active`** ("Pseudo-class :first-child is not allowed"); other pseudo-classes go in the CSS file.
+- **External `background-image: url(https://…)` is accepted and published.** Check compiled backgrounds for local-copy URLs, and compare background images when measuring, not only background colours.
 
 ## Breakpoints
 
@@ -61,9 +79,14 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 
 ## Building elements (WHTML and the element builder)
 
-- **WHTML keeps only classes that already exist as styles.** A new name is silently dropped, except as a combo on an existing base. Don't rely on WHTML's css block to create classes: create every style first (`create_style`), then insert, or set the class afterwards with `set_style`.
+- **WHTML needs a style behind every class.** A class that is neither an existing style nor declared in the call's `css` block is silently left off the element (a whole section lost its new classes while the existing ones survived). In the first build the css block did not reliably create classes either; in the second it did. So: give every new class a rule in the css block, even a one-property rule, or create the style first (`create_style`), and read the classes back after the insert.
+- **WHTML reuses an existing style with the same class name and ignores the new CSS for it.** A recompile that produces an old name for a new element gets the old properties. Give each page its own class namespace, and when a page is patched instead of re-inserted, push changed rules with `update_style`.
+- **WHTML can drop the class of `<li>` children**, so global list rules reach them. Reset them from a parent hook in the CSS file.
 - **WHTML stacked classes become a combo of the first class** (`class="a b"` → `.a.b`). Put independent classes on nested elements.
-- **WHTML turns `<button>` into a link with no href** (not focusable). Build real buttons with the element builder: a DOM element with tag `button`.
+- **WHTML turns `<button>` into a link** (with no href, so not focusable, in the first build; `<a href="#" class="w-button">` in the second). `w-button` brings a blue background, white text, 9px 15px padding and an inherited line height: every class on a converted button must set background, colour and padding, and the element needs `role="button"`. For a real button use the element builder (a DOM element with tag `button`), or write `<a role="button">` yourself. A text-only comparison misses this on an icon button.
+- **WHTML drops an `<img>` whose file is not in the asset library** (it keeps an empty Image element), even for a Webflow CDN URL. Upload first, then `set_image_asset`.
+- **An `<a>` with block children becomes a Link Block, which is `inline-block`** where the theme's link was `inline`. An image sized by height inside it then takes its natural ratio. Set the link back to inline where the theme relies on it.
+- **`<div class="w-richtext">` in WHTML becomes a plain Block.** Create Rich Text with the element builder (`type: "RichText"`) and bind it with key `richText`.
 - **WHTML keeps `data-*` attributes, links and `<strong>`**, so page sections can be inserted as HTML with placeholder divs where components go.
 - **Inline spans**: the element builder cannot make a `<span>` and `set_tag` refuses it, but WHTML turns `<p><span class="x">…</span></p>` into a real Paragraph › Span with the existing class.
 - **Block elements cannot be `<span>`**, and a div inside a Paragraph breaks the HTML (the browser closes the `<p>`).
@@ -71,13 +94,14 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - **Placeholder text survives**: a TextBlock made inside a builder tree keeps "This is some text inside of a div block." and `set_text` on it is refused; set the text on its String child (find them with an element query filtered by type `String` and that text). Grep published HTML for the placeholder.
 - **Long builder calls get cut off** around 4–5 KB when they carry escaped SVG. Use single-quoted attributes, smaller calls, or create an empty embed and set its code afterwards. Repeated decorative icons are cheaper as CSS pseudo-elements.
 - **Duplicated pages keep element ids**: build one page shell and duplicate it; every page's main element then has the same id.
-- **A page and a folder can share a slug** (`/about` and `/about/team` publish together). A folder index page with slug `index` is refused.
+- **A page and a folder can share a slug** (`/about` and `/about/team` publish together). A folder index page with slug `index` is refused. A folder made by `create_page_folder` is named "Untitled"; rename it with `update_page_settings` (title and slug), which works on folders.
 - **Designer copy and paste is the only way to reuse a built block** (there is no API copy). Pasted lists keep source, curated ids, sort and bindings. A block pasted onto a selected empty div lands inside it. A list cannot be pasted beside another list; paste into the parent, then `move_element`. A pasted subtree's ids keep a fixed offset layout, so one query per page gives every id.
 
 ## Collection Lists
 
 - **Source by API**: `set_settings` key `source` with `{"collectionId": "…"}` as JSON (a plain string is refused). Nested source is `{collectionId, fieldId}`.
-- **Sort and filters** have at times needed the Designer open, and at times been refused outright. Formats: sort `[{fieldSlug, direction: "ascending"}]`; filters `[{fieldSlug, operator, value}]`, with date operators `isSet`, `isNotSet`, `greaterThanOrEqual`, `lessThanOrEqual`. Keep a Designer step in reserve.
+- **Sort and filters** have at times needed the Designer open, and at times been refused outright. In the second build they worked headless on a clean page, and were refused with `[Conflict] … component map` on a page full of API-built component instances, even with the Designer open on it: build CMS shells on their real pages, not on a component test page. Formats: `limit` a number; sort `[{fieldSlug, direction: "ascending"}]`; filters `[{fieldSlug, operator, value}]`, with operators `isSet`, `isNotSet`, `greaterThanOrEqual`, `lessThanOrEqual`. Keep a Designer step in reserve.
+- **A list cannot take `source` at creation** ("Setting "source" is not applicable"). Create it bare, set `source` first, then `sort`, `limit` and `filters` in a second call.
 - **Curated lists**: `queryMode` is `dynamic` or `curated`. Write `queryMode: "curated"` and `curatedItemIds` in **separate** calls (together, the ids are dropped) and read back with `get_settings`. A nested source reads back as `{collectionId}` only, so a read cannot confirm the field; check the published page.
 - **The item cap is `limit`, not `pagination`** (pagination turns on pager links).
 - **Nested lists** show 5 items by default (raise `limit`, max 20), cannot be sorted, and show the multi-reference field's stored order. Store references in display order at import.
@@ -94,6 +118,8 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - **Instance props bind to CMS fields by API**: `{prop_id, type: "bindable", binding_source_type: "cms", binding_collection_id, binding_field_id}` (not a nested `binding` object).
 - **Prop value types**: text content, image (asset id), alt text and variant (variant id) all take `type: "string"`; links take `type: "link"` with `link_mode` and `link_to`; booleans `type: "boolean"`; rich text `type: "richText"`, which accepts plain text only and drops span classes (carry the face with a variant plus CSS).
 - **Slots**: `insert_in_slot`, or one insert with a nested `component_schema.slots` tree, works. Slot inserts return only `{inserted: true}`; get child ids from the parent insert's component info or a page-wide query.
+- **Two slots with the same name: only the first can be filled by API.** Both calls resolve the name to the first slot, and slot props cannot be renamed. Give a component at most one slot if it must be filled by API; drive position with a boolean prop bound to an attribute and reorder in CSS. **A boolean-bound attribute publishes as "True" or "False"**, capitalised: match with `[data-x="true" i]`.
+- **Insert a component instance by appending to a parent**; an instance cannot be the anchor of an insert.
 - **Component definitions cannot be edited through the page tools.** Old page element ids stop resolving after `transform_element_to_component`. Element ids inside a definition are the component id with an incremented last group; read them with `designer_tool get_selected_element` on the component canvas and write with `scope_component_id`.
 - **Transforming an element to a component can leave an empty copy of the root behind** on the page, and attributes set beforehand can be lost. Re-check both.
 - **Webflow refuses slots inside a Link Block.** A button with an icon slot is a div with a full-size link overlay and a visually hidden label.
@@ -103,6 +129,13 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 
 - **Text needs block elements**: spans refuse text bindings. Use a div, inline via CSS.
 - Element bindings use `set_settings` keys `text`, `richText`, `assetId`; attributes bind one by one with `value_binding` (to a CMS field, or to a component prop with `{source_type: "prop", prop_id}`).
+- **Bindings cannot be set while the element is being created.** The element builder refuses `attributes` and CMS `text` bindings in its `settings` ("not applicable", "not inside a CMS context"); the same writes succeed with `set_settings` once the element sits inside the Collection Item. Create first, bind second, read back third.
+- **Attribute bindings by API**: `set_settings [{key: "attributes", attributes: [{name_static, value_static} | {name_static, value_binding: {source_type: "cms", collection_id, field_id}}]}]`. The call replaces the element's whole attribute list, so pass the static ones too. Useful where a collection has no link field to bind (bind the slug to an attribute and let a script build the href).
+- **Visibility binds only to Switch fields**, and a visibility write can report success and store nothing (it did on two HTML-built wrapper Blocks; the same binding on a Span and a Link held). Read every one back with `get_settings`.
+- **A CMS-bound image keeps its static alt.** Every item then shows the first item's alt, or none. Set `altText` to `"inherit"` (`set_settings [{key: "altText", static_text: {value: "inherit"}}]`) so it follows each item's image.
+- **Color fields are not bindable by API**, as text or as a style. Keep a plain-text copy of the colour.
+- **Don't put `display: contents` on a bound rich text.** It then has no box of its own, and a position-based measurement shifts every later element. Style the rich text block itself.
+- **`data-tag-1` is `dataset['tag-1']`**, not `dataset.tag1` (no camel-casing before a digit). Read such attributes with `getAttribute`.
 - **Reference sub-fields** bind with `fieldId: "<refFieldId>:::<subFieldId>"`; `get_bindable_sources` lists them.
 - **`{{wf …}}` placeholders typed into an embed by API publish verbatim.** They work in page and template head code (see below), not in embeds.
 - **An attribute bound to an Option field is stored but not published** (text bound to the same field is). Bind a PlainText field or derive the value in script.
@@ -114,13 +147,17 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - **CMS templates print no Open Graph or Twitter tags at all unless set.** Add them in template head code with placeholders.
 - **The site head and footer code API replaces the whole block.** Read it and back it up first; other people's scripts live there. A site token gets 403 on custom code without that scope; the MCP can write it.
 - Static pages have a native "Schema markup" field, a safer home for per-page JSON-LD than shared head code.
-- **An untouched collection template does not publish**: its item URLs 404 until the template has content.
+- **An untouched collection template does not publish**: its item URLs 404 until the template has content. A collection made by API gets a template with only a Body, so add at least the navigation and footer to every template.
+- **Webflow ignores query strings on `/`.** `/?p=<id>` always serves the home page with 200; no page or redirect can match it. Record it as an accepted difference.
+- **The 404 page has no id in the page list until it has been opened once in the Designer**, and the Search Results page does not exist until a Search element has been added (it can be deleted again). After those two clicks both are built like any page.
+- **The site icon is one upload** (Site settings › General › Icons): one square image becomes the favicon, the touch icon and the larger app icons. There is no API route.
 - **Static-page text in the primary locale** can be fixed only through the Designer tools; the page DOM endpoint accepts secondary locales only.
 - **Required fields** are enforced on publish, not on drafts, and existing items are not re-validated.
 
 ## Site search
 
 - A page with slug `search` is an ordinary page; the Search Results utility page appears when a Search element is added in the Designer.
+- On a site with no site plan, search shows sample results only (see "A site with no site plan").
 - 10 results per page by default (max 60), no pagination. The index rebuilds 12 hours after a full publish, or Designer › Settings › Search › "Index now" once an hour. Components are excluded by default.
 - Result markup is a link, the URL and a snippet with `<strong>` highlights; the title is the result page's `<title>`. The placeholder, results length and empty text are not exposed to the API's settings.
 - **Results can show the site name as every title.** Don't wait for it: ship a path → title list beside the bundle and let the results script fill titles.
@@ -131,7 +168,7 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - **Sitemap membership is its own setting.** A `noindex` meta does not remove a URL from the generated sitemap, and template pages show no toggle in the Designer. Use the beta sitemap API (`data_sitemap_tool`; REST `PATCH /beta/sitemap/collections/{id}/items` and the pages equivalent) with `includeInSitemap: false`, then publish. **Saving a page's settings in the Designer resets it**: set it last and re-list the status.
 - **The sitemap updates on a full site publish only.** An item published on its own is not added until then.
 - Search exclusion is a separate per-page checkbox, Designer only.
-- The webflow.io staging address has its own indexing switch (keep it off); check its `robots.txt`.
+- The webflow.io staging address has its own indexing switch (keep it off); check its `robots.txt`. A custom `robots.txt` can be saved before there is a plan, while staging keeps serving its own `Disallow: /`. Auto-generate sitemap adds its own Sitemap line once switched on, so if your text carries one, tick "Remove sitemap.xml from robots.txt" at cutover.
 - **A site's "last updated" time a few seconds after "last published" is Webflow's own bookkeeping**, not a hidden edit. A later gap means someone changed something.
 - Publishing ships whatever Webflow runtime script is current; a small platform update can ride along with yours.
 
@@ -146,6 +183,8 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 
 - `.w-richtext ul { overflow: hidden }` clips list bullets.
 - A third-party slider's base class (`.swiper`: `position: relative; overflow: hidden; z-index: 1`) loads after Webflow's CSS and beats Webflow classes. Add it only where those defaults are wanted.
+- With your own slide class (`slideClass`), slides need `flex-shrink: 0`: the slider's CSS sets it on its default slide class only, so custom slides shrink to their content.
+- `.x input { font: inherit }` outranks a type class on the input (two selectors against one). Leave the font to the class.
 - `.w-embed::before/::after` are `display: table` and become flex items when the embed is `display: contents` in a flex row.
 - Webflow's base does not make `<button>` inherit type the way a CSS reset does. Add `font: inherit` and letter-spacing where a real button must match the theme, but not where its own class sets type.
 - A class `display` beats the `hidden` attribute. Hide script-controlled boxes with `style.display`.

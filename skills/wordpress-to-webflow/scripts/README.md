@@ -9,7 +9,10 @@ Two folders hold everything: `paths.inventoryDir` (facts collected from WordPres
 | `site.mjs`, `site_config.py` | Never on their own: the config loaders the other scripts import | The config file | Nothing |
 | `wf-api.mjs` | Never on its own: the Webflow API helper | `WEBFLOW_TOKEN` in the environment | Nothing |
 | `block.mjs` | Never on its own: blocks trackers and form posts during browser checks | Optional `checks.blockRequestRes`, `checks.blockPostRes` | Nothing |
+| `archive-check.py` | Phase 0, straight after unpacking the backup | The zip and the extracted folder on the command line (no config) | A summary on standard output, optionally `--report <file>` and both copies of every case-only name pair in `--extract-collisions <folder>` |
 | `cms-counts.mjs` | Phase 2, after the import, and after anything that may touch the CMS (a backup restore) | `WEBFLOW_TOKEN`, `webflow.collections`, `<inventoryDir>/cms-expected.json` | `<verifyDir>/cms-counts-<time>.json` |
+| `measure-blocks.mjs` | Phase 1 and Phase 3 for each block, Phase 4 and Phase 7 for whole templates and pages | Local WordPress, staging, a spec file naming each block's path and selector on both sides, optional `checks.measure.*`; Playwright | `<verifyDir>/measure/<name>.json` |
+| `heading-sequence.mjs` | Phase 4 as soon as templates exist, after every template change, and Phase 7 | Local WordPress, staging, `staging-paths.json`, optional `urls.csv` and `checks.headings.*`; Playwright | `<verifyDir>/heading-sequence.json`, `heading-sequence.md` |
 | `compare-bodies.mjs` | Phase 2 and Phase 7: rich-text bodies against the local WordPress copy | Local WordPress, staging, `checks.bodies.*`; Playwright, cheerio | `<verifyDir>/bodies/rendered-compare-<type>.json` and screenshots |
 | `glued-words.mjs` | Phase 4 and Phase 7: after pages or bodies are built | Local WordPress, staging; paths on the command line | JSON on standard output |
 | `bundle-swap.mjs` | Phase 5: to test an unreleased script and stylesheet build on real staging pages (imported by your own test) | `release.*`, staging; Playwright | Nothing (returns a browser context) |
@@ -34,7 +37,7 @@ Two folders hold everything: `paths.inventoryDir` (facts collected from WordPres
 - **Node 20.18.1 or newer** (the scripts use built-in `fetch` and top-level `await`).
 - **Python 3.9 or newer**, standard library only. Run the Python scripts with `python3 -I`.
 - **curl** on the PATH (used by the JSON-LD checks and the two Python scripts that fetch).
-- In this folder: `npm install`, then `npx playwright install chromium`. Only two packages are needed, pinned in `package.json`: `playwright` (the browser checks: `crawl-links`, `console-check`, `compare-bodies`, `bundle-swap`) and `cheerio` (`compare-bodies`). The other scripts need no install.
+- In this folder: `npm install`, then `npx playwright install chromium`. Only two packages are needed, pinned in `package.json`: `playwright` (the browser checks: `crawl-links`, `console-check`, `compare-bodies`, `bundle-swap`, `measure-blocks`, `heading-sequence`) and `cheerio` (`compare-bodies`). The other scripts need no install.
 
 ## Notes
 
@@ -43,4 +46,5 @@ Two folders hold everything: `paths.inventoryDir` (facts collected from WordPres
 - **What touches the network**: each script's header says which hosts it calls. Beyond the hosts in your config or on the command line, that is: the Webflow API (`staging-paths`, `sitemap-exclude`, `cms-counts`), whatever a page loads when a browser check opens it, and, for `live-capture.mjs`, the destination of any old redirect that leaves the site (each redirect is followed to its end).
 - **Only `sitemap-exclude.mjs` changes anything** outside your project folder (the sitemap setting of the items you name). Every other script reads.
 - **Importing redirects in Webflow replaces every existing redirect.** `redirects-import.csv` is always the full list.
+- **Copying these scripts into a project**: they read every site value from the config and write only under `<verifyDir>` and `<inventoryDir>`. Keep any script you add the same way. A copied script with the last project's folder typed into it writes there without complaint, so grep for the previous project's path and domain before the first run.
 - **`staging-paths.json` is the base of most checks.** Run `staging-paths.mjs` again after adding pages or publishing new items, or the checks will miss them.

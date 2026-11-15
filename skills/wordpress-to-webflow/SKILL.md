@@ -5,7 +5,7 @@ description: Rebuild a WordPress site in Webflow so it looks and behaves the sam
 
 # WordPress to Webflow
 
-A method for rebuilding a WordPress site in Webflow, written from a full migration (about 500 CMS items, 30 pages, 24 theme blocks) and three follow-up schema jobs. It exists because the obvious way fails: rebuilding pages by eye from the live site gets the colours right and nearly everything else subtly wrong (breakpoints, spacing tiers, which element carries which rule, behaviour, URLs). The method below replaces looking with measuring.
+A method for rebuilding a WordPress site in Webflow, written from a full migration (about 500 CMS items, 30 pages, 24 theme blocks), three follow-up schema jobs, and a second site on the same theme (about 370 items, 37 pages) built with this kit in one overnight run. It exists because the obvious way fails: rebuilding pages by eye from the live site gets the colours right and nearly everything else subtly wrong (breakpoints, spacing tiers, which element carries which rule, behaviour, URLs). The method below replaces looking with measuring.
 
 ## The method in five sentences
 
@@ -13,7 +13,7 @@ A method for rebuilding a WordPress site in Webflow, written from a full migrati
 2. **Inventory before building.** Every page, post, field, option, asset, URL and SEO value goes into machine-readable files, and the acceptance counts are generated from them, never typed.
 3. **Prove the risky parts small.** Settle component versus Collection List boundaries, body conversion, curation, filtering past 100 items and search on a handful of real examples before building at scale.
 4. **Import idempotently.** Identity is the WordPress id, not the slug, so the import can be rerun at cutover without duplicates.
-5. **Verify by script, with evidence.** A claim without output (counts, command results, file paths, screenshots) does not count as done.
+5. **Verify by script, with evidence.** Differences are found by comparing code and measured values (computed styles, box sizes, heading order, text and link sets), never by comparing pictures. A claim without output (counts, command results, measured values, file paths) does not count as done.
 
 ## What this assumes you have
 
@@ -28,19 +28,24 @@ These are the steps only a person can do. Ask for all of them at the start, sayi
 
 | Needed | Where the owner does it | Why |
 |---|---|---|
-| A new, empty Webflow site on a plan whose collection and item limits exceed the inventory counts, and its site id | Webflow dashboard | Never resume a half-built earlier attempt; keep it as a reference only |
-| A site API token with CMS, Sites and Pages scopes, saved as `WEBFLOW_TOKEN=` in a local `.env` | Site settings › Apps & integrations › API access | Bulk import. Never printed, logged or pasted in chat. Site head and footer code needs a further scope, or is written through the MCP |
+| A new, empty Webflow site and its site id. A site plan is needed by cutover (hosting, 301 redirects, real search results, sitemap controls); whether one is needed to *build* depends on the workspace, so run the Phase 0 pre-flight probe instead of assuming | Webflow dashboard | Never resume a half-built earlier attempt; keep it as a reference only |
+| A site API token with CMS, Sites and Pages scopes, saved as `WEBFLOW_TOKEN=` in a local `.env` | Site settings › Apps & integrations › API access | Bulk import. Never printed, logged or pasted in chat. Site head and footer code needs a further scope, or is written through the MCP. Asset uploads work through the MCP, so no assets scope is needed |
 | A full backup of the WordPress site: files plus database dump | The host's backup tool | The local reference |
 | The host's redirect rules export | The host's redirect settings | Redirects often live at the host, outside WordPress |
 | Read access to Search Console and analytics for a service account, if available | Search Console › Settings › Users and permissions | Which URLs and pages matter; the SEO baseline |
 | Brand fonts uploaded to the Webflow site | Site settings › Fonts | Fonts cannot be guessed |
 | The staging host (`<short-name>.webflow.io/*`) added to any referrer-restricted API key, such as maps | The key's settings in its cloud console | Otherwise maps fail on staging |
 | A test-contact procedure for any live form or CRM provider | Agreed with whoever owns the CRM | No test submission before it exists |
+| Whether every original upload is to be kept at its old address, or only the files the site and Google use | A decision, early | The uploads folder is usually far bigger than what a rebuild stages; it decides how old file URLs are redirected (`references/redirects.md`) |
+
+If something on this list is missing when the build starts, do not stop: park it, say so, and carry on with what does not depend on it. `references/phases.md` ("Running it unattended") gives the order.
 
 ## Working rules
 
 - **Never write, reword or invent copy.** Every word on the new site comes from the old one. If the source is missing something, leave it out and say so. This applies to structured data too: every string comes from a page, a CMS field or an official register.
 - **Keep four files in the project folder** and read them at the start of every session and after every context compaction: `PLAN.md` (decisions and phase gates), `PROGRESS.md` (dated log: what was done, the evidence, what is open), `LEARNINGS.md` (one dated entry per discovery), `site.config.json` (every site-specific value; copy `assets/site.config.example.json`). Scripts read the config, so nothing site-specific is hard-coded and the work carries to the next site.
+- **Read every write back.** Webflow's API answers "success" for writes it then drops: a class with no style behind it, a binding on some elements, a style value it does not understand. Follow each class, binding and settings write with a read of what was stored, and check the published HTML for what a read cannot show.
+- **Tools take their origins from the config.** The local copy is the reference; a hand-typed live URL in a quick check sends requests to the production site. Read the origin from `site.config.json` in one-off shell checks too.
 - **Within any one structure, API writes first and Designer steps last.** Once the Designer has edited inside an API-built structure, the API may refuse further writes to it. After any structural change to components, slots or lists, do one throwaway attribute write (a canary) and stop at the first failure. Take a named manual backup before risky component work.
 - **Work on the staging address only.** Publishing to a live domain is the owner's decision each time. Once the live domain is on Webflow, prove what a publish would ship before asking (see `references/structured-data.md`, "Publishing safely").
 - **Behaviour lives in one script file and one CSS file**, served from immutable hashed paths so rollback is a one-line change (see `references/phases.md`, Phase 5). Custom-code fields hold only the two lines that load that release, meta and Open Graph tags, JSON-LD, a tiny early inline script where unavoidable, and third-party loaders gated to the live hostname. No behaviour code is pasted into pages.
@@ -53,18 +58,28 @@ Each phase has a gate. Do not start the next until the gate's evidence is in `PR
 
 | Phase | What | Also read |
 |---|---|---|
-| 0 | Local WordPress from the backup, inventories, reference screenshots, proof the tools work | `references/wordpress-side.md` |
+| 0 | Pre-flight probe, local WordPress from the backup, inventories, reference measurements, proof the tools work | `references/wordpress-side.md` |
 | 1 | Design system in Webflow from the theme's own tokens and breakpoints | `references/webflow-traps.md` |
-| 1b | Feasibility proof on staging of the five risky assumptions | |
+| 1b | Feasibility proof on staging of the six risky assumptions | |
 | 2 | CMS schema and two-pass import, media, SEO fields | `references/import.md` |
-| 3 | Components and page-owned shells, measured against the reference | `references/webflow-traps.md` |
-| 4 | Pages and collection templates from the composition map | `references/webflow-traps.md` |
+| 3 | Components and page-owned shells, compiled from the rendered theme where that is possible, measured against the reference | `references/webflow-traps.md`, `references/verification.md` |
+| 4 | Pages and collection templates from the composition map; the heading-order crawl runs as soon as templates exist | `references/webflow-traps.md` |
 | 5 | Behaviour bundle: menus, sliders, filters, forms, search, maps | `references/verification.md` for testing it |
 | 6 | Redirects, URL manifest and checker, head tags, sitemap, structured data | `references/redirects.md`, `references/structured-data.md` |
-| 7 | Verification: structure, visual, behaviour, links, content, SEO, code parity, editor acceptance | `references/verification.md` |
+| 7 | Verification: structure, measured layout, behaviour, links, content, SEO, code parity, editor acceptance | `references/verification.md` |
 | 8 | Cutover: re-sync, DNS, launch checks, rollback, retirement. Always with the owner, never unattended | `references/cutover.md` |
 
 Keep a mapping file per theme in the project (`theme-mapping.md`): each theme block, whether it became a component or a page-owned shell with a list, and why. Sites on the same theme share most of it, so the second migration starts from the first one's file. `references/example-theme-mapping.md` is the one from the reference migration, as a model.
+
+## A second site on the same theme
+
+The kit from the first build saves most of the early work (Phase 0 took 25 minutes against an hour, and the button component carried straight over), but only if you find out how alike the two sites really are before reusing anything:
+
+1. **Diff the two theme folders** (leaving out vendor, build output and `node_modules`) and read every file that differs before reusing a component design.
+2. **Diff the compiled rules for buttons, tags and type** between the two themes' built CSS. Differences in shared partials (a new margin on a button label, one more colour variant, another line height) do not show up as a differing template.
+3. **Copy the class list from this site's compiled CSS**, not from the last site's Webflow styles. Type scales, weights and letter-spacing are per site even when the block list is identical.
+4. **Before running any copied script, grep it for the previous project's folder path and domain.** Output paths must come from the config or be relative to the project; a copied script that still points at the last project writes into it without complaint.
+5. Record what the second build teaches in its own `LEARNINGS.md` under the same headings as the first, so the differences are easy to read side by side.
 
 ## When the request is only one part
 
@@ -79,9 +94,9 @@ Most requests are a slice of the above. Go straight to the slice:
 
 ## Scripts
 
-`scripts/README.md` lists each script, when to run it and what it writes. They read `site.config.json` (`--config`, `SITE_CONFIG`, or the current folder) and take the Webflow token only from the `WEBFLOW_TOKEN` environment variable. Most checks start from `scripts/staging-paths.mjs`, which lists every path the new site serves; rerun it when pages or items are added. Browser checks block common trackers and form submissions by default. Prove a checker before trusting it: a fixture with one known failure must fail.
+`scripts/README.md` lists each script, when to run it and what it writes. They read `site.config.json` (`--config`, `SITE_CONFIG`, or the current folder) and take the Webflow token only from the `WEBFLOW_TOKEN` environment variable. Most checks start from `scripts/staging-paths.mjs`, which lists every path the new site serves; rerun it when pages or items are added. Browser checks block common trackers and form submissions by default. Prove a checker before trusting it: a fixture with one known failure must fail. Three scripts are for the build itself, not only the end: `archive-check.py` (is the unpacked backup complete), `measure-blocks.mjs` (is this block the same as the theme's, by measured values) and `heading-sequence.mjs` (does every page have the sections the old one has).
 
-The kit covers redirects and checking. It does **not** ship the parts that depend on the theme and the content model; write those per site, driven by the same config: the inventory generator, the importer and body converter, the media uploader, the composition map and its sequence check, the measuring and screenshot scripts, the behaviour suite, the JSON-LD generator, and the bundle build. `references/phases.md` says what each must do.
+The kit covers redirects and checking. It does **not** ship the parts that depend on the theme and the content model; write those per site, driven by the same config: the inventory generator, the importer and body converter, the media uploader, the block compiler (for a utility-class theme; see `references/phases.md`, Phase 3), the composition map and its sequence check, the reference-measurement script, the behaviour suite, the JSON-LD generator, and the bundle build. `references/phases.md` says what each must do.
 
 ## The traps that cost the most time
 
@@ -97,3 +112,6 @@ Read `references/webflow-traps.md` before Phase 1. The short list:
 8. CMS templates print no Open Graph or Twitter tags unless you add them in template head code.
 9. Items created by an editor lack importer-only fields. Anything keyed on those fields silently drops new items.
 10. The old site holds redirects and behaviour the exports don't show. Capture what the live site actually does.
+11. The API reports success for writes it did not store (classes without a style, some bindings, `unset` values, shorthand grid properties). Read back, then measure.
+12. A site with no site plan builds and publishes to staging, but refuses 301 redirects and sitemap controls and shows only sample search results. Those checks move to cutover.
+13. A block measured in part hides what is missing from the rest. Measure whole templates, and crawl every page's heading order early.
