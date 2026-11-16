@@ -28,7 +28,9 @@
 //                                                         part is listed, default 0.5
 // Outputs:  <verifyDir>/sweep/<page>.<width>.json   every part of that page at that width, with regions and values
 //           <verifyDir>/sweep/img/…png              WordPress | staging | difference, for parts that differ
-//           <verifyDir>/sweep/summary.md            parts that differ, worst first
+//           <verifyDir>/sweep/summary.md            parts that differ, worst first (a full --all run only)
+//           <verifyDir>/sweep/summary-partial-<time>.md   the same for a run on named paths or with --limit, so a
+//                                                   spot check never overwrites the last full run's summary
 //           <verifyDir>/sweep/triage.md             the same differences grouped by cause (staging element +
 //                                                   property), by number of pages: one fix per row
 //           The count of page loads compared goes to standard error, so a run that compared nothing is plain to see.
@@ -40,6 +42,8 @@
 // Reading the result: start with triage.md. Fix causes from the top; one row usually covers many pages. Then
 //           summary.md for parts missing, extra or a different height. Run again until it is clean or every row
 //           left has a line in accepted-differences.md. Expect the first run to be loud.
+// Known limit: lazy images on the old site can paint blank in the full-page capture although they are loaded;
+//           it shows as pixels differing with equal heights and no value differing. Group and count those rows.
 import fs from 'node:fs';
 import path from 'node:path';
 import { opt, origin, arg, has, positionals, verify, inventory, readJson, readCsv } from './site.mjs';
@@ -226,7 +230,9 @@ const md = ['# Whole-page sweep: WordPress (local copy) against staging', '',
   ...(failed.length ? ['## Not compared', '', ...failed.map((r) => `- ${r.path} @${r.w}: ${r.error}`), ''] : []),
   '| Page | Width | Part | WordPress h | Staging h | Δh | Pixels differ | First difference (element: property WordPress → staging) | Picture |', '|---|---:|---|---:|---:|---:|---:|---|---|',
   ...rows.map((x) => { const r0 = x.regions?.[0]; const d = r0 ? Object.entries(r0.diff.el).slice(0, 4).map(([k, v]) => `${k}: ${String(v[0]).slice(0, 30)} → ${String(v[1]).slice(0, 30)}`).join('; ') : ''; return `| ${x.path} | ${x.w} | #${x.i} ${cell(x.wp?.sig || x.wf?.sig)} ${x.issue || ''} | ${x.wp?.h ?? '–'} | ${x.wf?.h ?? '–'} | ${x.dh ?? ''} | ${x.diffPct ?? ''}% | ${r0 ? `${r0.wp?.el?.tag || '?'}.${cell((r0.wp?.el?.cls || '').split(' ')[0])} "${cell((r0.wp?.el?.text || '').slice(0, 20))}" — ${cell(d)}` : ''} | ${x.img || ''} |`; })];
-fs.writeFileSync(path.join(DIR, 'summary.md'), md.join('\n') + '\n');
-console.error(`page-sweep: ${total - failed.length} of ${total} page loads compared; ${rows.length} parts differ → ${path.join(DIR, 'summary.md')}`);
+const FULL = has('--all') && !has('--limit');
+const summaryFile = path.join(DIR, FULL ? 'summary.md' : `summary-partial-${new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')}.md`);
+fs.writeFileSync(summaryFile, md.join('\n') + '\n');
+console.error(`page-sweep: ${total - failed.length} of ${total} page loads compared; ${rows.length} parts differ → ${summaryFile}${FULL ? '' : ' (partial run: the full run\'s summary.md is untouched)'}`);
 triage();
 process.exit(rows.length || failed.length ? 1 : 0);

@@ -5,6 +5,8 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 ## Contents
 - Measuring
 - The whole-page sweep: no samples
+- States the sweep cannot see
+- Structure checks on every page
 - The Phase 7 checks
 - Code parity: the check that finds what the others miss
 - A check that did not run looks like a pass
@@ -41,12 +43,38 @@ Why it is required. Block specs prove the blocks they name, and a template examp
 - **The first run is loud.** That is the point; do not raise the threshold to quieten it. A row that is truly not a fault (text that wraps one word differently, a third-party embed that draws itself) goes in `accepted-differences.md` with its reason.
 - **It compares pages at rest.** Hover and focus states, open menus and panels, sliders part-way through and anything behind a click are not in it; those belong to the behaviour checklist, which should measure the opened state the same way.
 - **It needs the local WordPress copy running and every staging path in `staging-paths.json`**; rerun `staging-paths.mjs` after publishing new items, and read the line that says how many page loads were compared.
+- **Account for every differing part.** After the last run, every part still listed sits in a named group in `accepted-differences.md`, with its count of parts and pages and the reason (a fault of the old site, a decision, a third-party embed, a slider caught on a different slide, a tool limit). The groups add up to the total. "Clean" means that and nothing looser: on the third build a first claim of clean still had 479 of 1,559 parts over the threshold, and grouping them turned up one more real fault.
+- **A run on a few pages writes its own summary** (`summary-partial-<time>.md`) and leaves the last full run's `summary.md` alone, so the evidence for the full run is never overwritten by a spot check.
+- **Known limit: lazy images can paint blank in the full-page capture of the old site**, though they are loaded and visible in the page. It shows as pixel differences with equal heights and no measured value differing. Name that group and count it; do not call it a fault and do not wave it through unexamined. Capturing in viewport-height slices is the likely cure and is not in the script yet.
+- **A slider or gallery caught on a different slide** on the two sides gives the same signature (pixels differ, values equal, the image file differs). It was the largest group on the third build: 278 parts on 92 pages.
+
+## States the sweep cannot see
+
+The sweep compares pages at rest. On the third build everything below was found by eye or by a later pass, after the at-rest measurements were equal. Each is checked against WordPress the same way: the same state on both sides, values compared.
+
+- **Open states, measured, at phone, tablet and desktop.** Open every menu panel, mega-menu column, sub-menu, search overlay, drawer, dropdown, share menu, accordion row and map view on both sides and compare boxes and type. "It opens" is not the check: a profile drawer passed the behaviour suite because it became visible, while rendering unstyled in the page flow below the footer. One fault showed only at the tablet width (a padding written at the phone breakpoint alone), so measure all three.
+- **Hover and focus.** For every interactive element compare what changes on hover (which properties, to what, and how long the transition takes), the cursor, and whether Tab reaches it. Parent-hover effects are the usual loss: an arrow meant to appear when its link is hovered showed always, and a fade ran in 150 ms where the theme's took 500.
+- **Keyboard.** Enter and Space on every toggle. A menu script bound its click to the `button` inside each item; the rebuilt item was a link with a button role, so hover opened it and neither a click nor Enter did, and a phone worked only by accident. Space activates a real button but not a link with a button role unless the script handles it.
+- **A slow drag on every slider**, both sides: 45 % of a slide over half a second, and a short 12 % drag. A replacement slider library brings its own defaults; one needed half a slide where the original moved on any drag past 3 px, so slow drags sprang back.
+- **Scroll beside every open overlay.** The theme locked the page while a drawer was open; the rebuilt drawer did not, and the page scrolled behind it.
+- **Run the whole behaviour suite after every fix release, not only the sweep.** A fix to one slider's start-up silently stopped another's autoplay; the sweep runs with reduced motion and could not see it. A run of single checks must never overwrite the full suite's report.
+
+## Structure checks on every page
+
+Greps and counts over the published HTML of every page, run after each insert and each release. Each one below would have caught a fault that reached review.
+
+- **Every page has the theme's page shell**: its main content wrapper, between navigation and footer. Four collection templates were built with navigation and footer only; the rule that pads the content below a fixed header had nothing to pad, and the header covered the top of the footer on 61 pages.
+- **Every script-driven block has its hook, on every instance, and has started.** List what each module looks for, per page and per template, confirm each is there, and confirm the library's own "initialised" class is present. A block re-inserted after the hooks were added, and a second instance on the same page, both stayed frozen stills. On a sister site a card template missing one image hook left every related image blank.
+- **One of each widget.** Count them on both sides. A static copy of a control that a script also builds gave two overlapping map toggles.
+- **No converter placeholder in any published page.** Grep for the compiler's own tokens and for the HTML builder's `##INLINE`, and make the build fail on one. A sister site had one showing on a policy page.
+- **Every class a script creates has a rule in the stylesheet.** Grep the modules for the class names they add (`className =`, `classList.add`, template strings) and require a rule for each. Two modules were ported without their CSS: a drawer rendered unstyled, and two maps were 0 px tall.
+- **Every item address answers as WordPress answers it.** Compare the status per item, not per collection: twenty items that exist only as a name were "Page not found" on WordPress and an empty page on staging.
 
 ## The Phase 7 checks
 
 1. **Structure**: component sequence per page equals the composition map, by script. The script must read the marker *this* build writes on each block (a data attribute, or the compiled class name). One written for another build's markers finds nothing and never truly runs; print how many pages and blocks it compared.
 2. **Measured layout**: every static page and template example measured whole against the local WordPress at 390, 768, 1200, 1440 and 1920 and both sides of each breakpoint, plus each fixed or sticky layout at a defined scroll position; the heading-order crawl over every path. **Triage by page height difference first** (lost or added content), then by the first mismatch on each page. Zero mismatches, or each one in the accepted-differences file. **Then the whole-page sweep over every path** (`scripts/page-sweep.mjs --all`, section above): its triage empty, or every row left in the accepted-differences file. The specs alone do not pass this check.
-3. **Behaviour and accessibility**: the behaviour checklist, every line ticked with width and browser, including real Safari and iOS Safari. Menus, search, forms, sliders, accordions, filters, sticky elements, modals, maps, keyboard focus, reduced motion. **Every script-driven element on the WordPress page must map to a hook on the new page**: list the theme's own markers (an Alpine `x-data`, a slider library's classes) per page and confirm each has its module hook in the published HTML. A block with no hook compiles to markup that looks right and does nothing (a page menu that should stick, a share bar, tabs, a header search form).
+3. **Behaviour and accessibility**: the behaviour checklist, every line ticked with width and browser, including real Safari and iOS Safari. Menus, search, forms, sliders, accordions, filters, sticky elements, modals, maps, keyboard focus, reduced motion. Then the states the sweep cannot see and the structure checks, in the two sections above. **Every script-driven element on the WordPress page must map to a hook on the new page**: list the theme's own markers (an Alpine `x-data`, a slider library's classes) per page and confirm each has its module hook in the published HTML. A block with no hook compiles to markup that looks right and does nothing (a page menu that should stick, a share bar, tabs, a header search form).
 4. **Console**: no errors on any page at any width (`scripts/console-check.mjs`).
 5. **Links and media**: crawl staging (`scripts/crawl-links.mjs`): zero broken internal links; zero references to the old host or to localhost in HTML, `srcset`, CSS backgrounds, embeds or JSON-LD; then crawl again with requests to the old host blocked and confirm nothing visible breaks.
 6. **URLs**: `scripts/check-urls.mjs` at zero failures.
@@ -113,9 +141,18 @@ Tell editors what is automatic and what is not: automatic lists pick new items u
 - Check phone landscape (844×390, less about 230px of browser bars in Safari): menus that give a link list "the leftover height" collapse to nothing, sometimes on the old site too.
 - Autoplay that stops on the last slide strands phones when the previous control is hidden. Copy the old slider's wrap behaviour.
 - iOS Simulator screenshots lag taps by about a step; wait two or three seconds.
+- **A simulator with no window draws no frames**, so composited transitions never finish and an autoplaying slider seems to stall after one move. Keep it drawing (recording the screen does it) while tests run.
+- **A tap made by script carries no user gesture**: iOS refuses the clipboard, so check "Copy link" once with a real simulator tap. The simulator's clipboard syncs with the Mac's, so that tap overwrites the owner's clipboard: save and restore it.
+- **The larger iPads send a desktop user agent** and the smallest sends a mobile one. A theme that picks markup on the server gives them different pages: read WordPress with each device's own user agent.
+- **Several simulators at once make drags flaky.** Rerun a failed check alone before calling it a failure, and give each simulator its own ports.
+- **A URL assertion read once races with the browser.** Wait for the address to change, with a short limit, before failing it.
 - Test a bundle before releasing it: `scripts/bundle-swap.mjs` serves the unreleased build in place of the release on real staging pages.
 - Re-run the whole behaviour suite after every release, not only the checks you think you touched.
 
 ## Accepted differences
 
 Keep `verify/accepted-differences.md`: each difference with its reason. Any that loses content or behaviour needs the owner's yes.
+
+- **The old site's own faults are not targets.** An image the editor's markup stretches to three times its height, a share button that never opens because of a typo in the theme, focus rings hidden on every element: record each, do not copy it, and give the owner the list. Where the new site is better for a reason that matters (keyboard users can see where they are), say so.
+- **Pasted formatting is content, not layout.** Editors' inline styles (a weight, a colour on a span) do not survive a rich-text field. Report them as content differences with a count and let the owner decide per site.
+- **When one site shows a fault, check its sister sites for the same cause straight away**, read-only, by cause and not by page. On the third build a check of the two earlier sites, built with the same kit, found several of the same root causes on each, plus faults of their own.

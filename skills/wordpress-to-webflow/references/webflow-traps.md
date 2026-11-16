@@ -127,6 +127,7 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - **Instance props bind to CMS fields by API**: `{prop_id, type: "bindable", binding_source_type: "cms", binding_collection_id, binding_field_id}` (not a nested `binding` object).
 - **Prop value types**: text content, image (asset id), alt text and variant (variant id) all take `type: "string"`; links take `type: "link"` with `link_mode` and `link_to`; booleans `type: "boolean"`; rich text `type: "richText"`, which accepts plain text only and drops span classes (carry the face with a variant plus CSS).
 - **Slots**: `insert_in_slot`, or one insert with a nested `component_schema.slots` tree, works. Slot inserts return only `{inserted: true}`; get child ids from the parent insert's component info or a page-wide query.
+- **A variant's class can be published on one instance only.** Link groups shown by a rule on the component's variant class were visible in one group and `display: none` in the rest, so a page menu opened empty on ten pages. Never let visibility depend on a variant class: have the script show the group that holds the current page, and after publishing check that each variant rule matches something on every page that uses it.
 - **Two slots with the same name: only the first can be filled by API.** Both calls resolve the name to the first slot, and slot props cannot be renamed ("not an updatable prop type"). The API itself makes the clash: two slot elements added to one component by the element builder are both named "Slot". Both inserts answer success and land in the first; the second stays empty. Give a component at most one slot if it must be filled by API; drive position with a boolean prop bound to an attribute and reorder in CSS. **A boolean-bound attribute publishes as "True" or "False"**, capitalised: match with `[data-x="true" i]`.
 - **Insert a component instance by appending to a parent**; an instance cannot be the anchor of an insert.
 - **Component definitions cannot be edited through the page tools.** Old page element ids stop resolving after `transform_element_to_component`. Element ids inside a definition are the component id with an incremented last group; read them with `designer_tool get_selected_element` on the component canvas and write with `scope_component_id`.
@@ -164,6 +165,8 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - **The site icon is one upload** (Site settings › General › Icons): one square image becomes the favicon, the touch icon and the larger app icons. There is no API route.
 - **Static-page text in the primary locale** can be fixed only through the Designer tools; the page DOM endpoint accepts secondary locales only.
 - **Required fields** are enforced on publish, not on drafts, and existing items are not re-validated.
+
+- **An element cannot be inserted or moved to sit before a component instance.** To put a main wrapper ahead of the Footer on a template, create the wrapper, then move the Footer instance after it.
 
 ## Site search
 

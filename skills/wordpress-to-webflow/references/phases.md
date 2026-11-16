@@ -104,6 +104,14 @@ Done when
 - Scan the compiled CSS for `unset` and `initial` before every insert; it is the fault that returns most often.
 - A `<button>` with child spans, and a trailing space inside an inline element, are both mangled by the HTML builder (`webflow-traps.md`, "Building elements"): compile the first to a div with a button role, and mend the second after the insert or move the space outside the element.
 - On templates and list cards, the compiler must mark every element that will take a CMS binding, so those are created with the element builder and only the unbound markup goes in as HTML. A binding on an HTML-built element inside a list item is dropped or refused (`webflow-traps.md`, "Write conflicts").
+- **Never fold the framework's base reset into a class that also styles the element's type.** A utility framework resets buttons at its base layer (`line-height: inherit`, `color: inherit`); written into the element's own combo class, the reset beats the type class (menu items at line-height 1.5 for 1.1, twelve filter buttons). Leave reset properties off any element that carries a type class, and keep one source of truth per property, not the Webflow class and the bundle stylesheet both.
+- **Resolve utilities in the stylesheet's rule order, not the order they sit in the class attribute.** With `transition-all` and `duration-500` on one element, the later rule in the stylesheet wins whichever is written first.
+- **A utility with no breakpoint prefix belongs at the base, at every size.** One written only at the phone breakpoint cost a menu 40 px of padding at the tablet width.
+- **Parent-hover utilities (`group-hover:`) cannot be a Webflow class.** Translate each into a stylesheet rule (`.parent:hover .child`) and list them in the compile report.
+- **When a plugin prints an inline style, bring the plugin's own rule for the children with it**, or drop the inline value. A share plugin's 32 px line-height on the wrapper, without its 16 px reset on the links, made the menu 214 px tall for 150.
+- **Drop static markup that a script rebuilds**, from a register of the widgets scripts own.
+- **Webflow's own element classes beat the theme's reset.** `.w-button { border: 0 }` removed every compiled 1 px border on link-buttons. For each Webflow class the build emits (`w-button`, `w-inline-block`, `w-richtext`), list what it sets and restore the theme's value after it in the base stylesheet.
+- **When an element changes type, carry what the old type did for free.** A disabled `<button>` that becomes a link keeps its hand cursor and Tab stop unless told otherwise; a div with a button role needs the pointer cursor; a slider that took focus and answered the arrow keys must still do so.
 - A carousel captured from the rendered page compiles to a still (absolutely placed slides, fixed heights from the capture width) unless its track gets the script hook. After each page insert, grep the published HTML for the slider library's own class names on elements with no hook.
 - A compiler that names classes by their style signature hands back the first prefix's names when a block is recompiled under a new prefix. Give it an option to start a prefix afresh, used only when the old names were never created in Webflow.
 - Give each page its own class namespace, numbered in document order. The HTML builder reuses an existing style with the same class name and ignores the new CSS for it; when a page is patched rather than re-inserted, push changed rules as style updates.
@@ -135,10 +143,13 @@ Done when
 
 **The bundle.** One script entry and one CSS entry, one module per behaviour (menu, each slider, filters, forms, search, maps, modal). Bundle and minify them; name the output folder by the first characters of a hash over the built files; never delete an older folder. Serve the folders from a static host with long-lived immutable caching. The site head holds one stylesheet line and the site footer one script line, both with subresource integrity hashes, so a release is two lines changing and rollback is changing them back. A small script should print those lines from the latest build. Files too large for Webflow (video, big PDFs) go to the same host under a stable path that supports Range requests. Test an unreleased build on real staging pages with `scripts/bundle-swap.mjs` before releasing it. If the static host's deploy tool can see more than one account, it refuses to choose when run without a terminal: put the account id in the config and pass it in the environment (for Cloudflare Pages, `CLOUDFLARE_ACCOUNT_ID`; a new Pages project also needs creating once before its first deploy).
 
+**Three rules for modules.** Each module carries its own CSS beside its script, so porting one ports the other (two were ported without, and a drawer and two maps reached review unstyled). Modules find elements by a data hook, never by tag name, since the compiler may change the tag, and fall back sensibly when one hook is missing. Every overlay (menu, drawer, filter drawer) uses one shared lock for the page behind it.
+
 **The behaviour checklist.** Write `verify/behaviour.md` from the theme's own block scripts and options, one line per behaviour a visitor can trigger, and automate as many lines as possible in a suite that runs in Chromium and WebKit at phone and desktop sizes. Rerun the whole suite after every release.
 
 Done when
 - The behaviour checklist is fully ticked, each line with the width and browser it was tested in (Chromium, real Safari, iOS Safari): menus, search, forms, sliders, accordions, filters, sticky navigation, modals, maps, reduced motion, keyboard focus.
+- Every open state is measured against WordPress at phone, tablet and desktop; hover, focus, Enter and Space, a slow drag on every slider and scrolling beside every overlay are compared on both sides (`verification.md`, "States the sweep cannot see").
 - No console errors on any page at any width. The page source shows exactly one external stylesheet and one external script of yours, plus declared dependencies.
 
 ## Phase 6: redirects, URL manifest, head
@@ -162,7 +173,9 @@ Done when
 - The sequence check, URL checker, link crawl (both passes), console check, body comparison, glued-words check and SEO check each report zero failures, with the output in `PROGRESS.md`.
 - A measurement report exists for every static page and template example at the fixed widths, with zero mismatches or every remaining difference in `verify/accepted-differences.md` with a reason.
 - The whole-page sweep (`scripts/page-sweep.mjs --all`) has compared every path at phone, tablet and desktop widths after the last release: its triage is empty, or every row left is in `verify/accepted-differences.md` with a reason. "Compared N of N page loads" is quoted in `PROGRESS.md`.
-- The behaviour checklist is ticked in real Safari and iOS Safari as well as Chromium.
+- The behaviour checklist is ticked in real Safari and iOS Safari as well as Chromium, rerun in full after the last release.
+- The states the sweep cannot see are measured, and the structure checks pass on every page (`verification.md`, the two sections after the sweep).
+- Every part the last sweep still lists is in a named group, with counts that add up to the total.
 - The code-parity diff has a disposition for every difference.
 - Editor acceptance and the new-item test are recorded, and the test item is deleted.
 - `LEARNINGS.md` is current and the scripts grep clean of site literals.

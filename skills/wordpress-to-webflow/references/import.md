@@ -74,6 +74,10 @@ A bound DateTime prints as a formatted day ("March 3, 2025") in attributes and t
 - **Spaces at the end of a span can vanish** when a page is built ("system.</span><span>Overall"). Comparisons that collapse whitespace miss it; run `scripts/glued-words.mjs --rendered` over every page. The cause and the repair are in `webflow-traps.md`, "Building elements".
 - **Card excerpts**: themes often generate them (first N words of the body, sometimes with links). Give cards a rich-text excerpt field, and a fallback for items without one.
 
+- **Order the converter's passes so the ones that recognise theme markers run first.** A general clean-up of inline styles ran before the pass that finds the theme's lead-paragraph span and unwrapped it; 19 article leads became plain body text. Never unwrap a span that carries a theme class. Count each marker in the WordPress HTML and in the converted bodies.
+- **Every field WordPress prints through its content filter gets the same typographic treatment on import.** Titles had curly quotes and dashes and bios did not, on eight items; an en dash is wider than a hyphen, so lines broke differently. Take the expected text from the rendered page, never the raw database value.
+- **Check each item's address against WordPress before publishing a collection.** Items that are a name only, with no page of their own, answered "Page not found" on WordPress and an empty page on staging. Unpublishing them removes them wherever they are listed, so decide with the owner; one way through is a slug for those items that no old address uses.
+
 ## SEO fields
 
 Take titles, descriptions, canonical and Open Graph images from the rendered `seo.csv`. Keep them exactly: they rank today. Bind template titles to a **required** field, or a new item without it publishes an empty `<title>`.
