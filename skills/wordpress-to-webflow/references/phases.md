@@ -120,7 +120,7 @@ Compose each page from a **composition map**: for every page, the ordered list o
 
 Build one page shell (navigation, main, footer) and duplicate it. Any page not made from the shell (one created earlier for a proof, or a utility page) needs checking for all three. Give every collection template at least the navigation and footer, including collections whose WordPress pages are empty: a template with nothing in it publishes every item URL as a 404.
 
-**Measure whole templates, and crawl early.** A template's measurement spec takes the template's whole content wrapper, not the one block that was just built. On the second build a case-study template was measured on its meta block only, and three sections present on every WordPress item were missing until the last day. Run `scripts/heading-sequence.mjs` over every path as soon as templates exist, and again after each template change.
+**Measure whole templates, and crawl early.** A template's measurement spec takes the template's whole content wrapper, not the one block that was just built. On the second build a case-study template was measured on its meta block only, and three sections present on every WordPress item were missing until the last day. Run `scripts/heading-sequence.mjs` over every path as soon as templates exist, and again after each template change. **Then sweep every page**: `scripts/page-sweep.mjs --all` compares every page and every item with WordPress, whole, at three widths, and groups what differs by cause (`verification.md`, "The whole-page sweep"). A template example proves one item; the sweep is what proves the other hundred. It is part of this phase, not a favour to the owner at the end.
 
 List every block the theme shows or hides by device (decided on the server from the user agent, not from the width) and build both versions, with a small early script that marks the page for phones and tablets and CSS that shows the right one.
 
@@ -129,6 +129,7 @@ Done when
 - Section sequence per page equals the composition map, by script, all green.
 - The heading-order crawl reports every page equal to WordPress with exactly one `h1`.
 - Every template example is measured whole at the fixed widths.
+- The whole-page sweep has run over every path (the count of page loads compared is in `PROGRESS.md`), and its triage is empty or every row left is explained.
 
 ## Phase 5: behaviour
 
@@ -160,6 +161,7 @@ The twelve checks are in `verification.md`. The agent performs the editor-accept
 Done when
 - The sequence check, URL checker, link crawl (both passes), console check, body comparison, glued-words check and SEO check each report zero failures, with the output in `PROGRESS.md`.
 - A measurement report exists for every static page and template example at the fixed widths, with zero mismatches or every remaining difference in `verify/accepted-differences.md` with a reason.
+- The whole-page sweep (`scripts/page-sweep.mjs --all`) has compared every path at phone, tablet and desktop widths after the last release: its triage is empty, or every row left is in `verify/accepted-differences.md` with a reason. "Compared N of N page loads" is quoted in `PROGRESS.md`.
 - The behaviour checklist is ticked in real Safari and iOS Safari as well as Chromium.
 - The code-parity diff has a disposition for every difference.
 - Editor acceptance and the new-item test are recorded, and the test item is deleted.
@@ -179,7 +181,7 @@ Done when
 
 A long build can run in one session that is kept going until a completion condition is met, if these hold:
 
-- The condition names evidence: every "Done when" line shown true with output, the URL checker at zero failures, the behaviour checklist ticked, measurement reports present. It stops at the end of Phase 7.
+- The condition names evidence: every "Done when" line shown true with output, the URL checker at zero failures, the whole-page sweep clean over every path, the behaviour checklist ticked, measurement reports present. It stops at the end of Phase 7.
 - **When a prerequisite is missing, park it and keep going**, in this order: everything local first (Phase 0, inventories, reference measurements); then whatever the pre-flight showed the site accepts; then the offline halves of plan-dependent work (the redirect file, the search page layout). Keep one list of what is parked and what each item is waiting for, and put it at the top of every report.
 - **The owner is asked once, before the run**, for what SKILL.md's owner list holds, and for nothing else. Defaults are applied and reported, not asked. A Designer-only step is done through the browser; if the browser is not signed in, the parked item is the sign-in, not the step.
 - After every context compaction, re-read `PLAN.md` and `PROGRESS.md` before doing anything else.

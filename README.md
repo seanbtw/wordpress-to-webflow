@@ -115,6 +115,7 @@ All of them read one `site.config.json` (start from [`site.config.example.json`]
 | Any console errors, at any width? | `console-check.mjs` |
 | What scripts, tags and metas did the old site print that the new one does not? | `code-parity.py`, `code-parity-report.py` |
 | Does every body read the same? Did two words fuse? | `compare-bodies.mjs`, `glued-words.mjs` |
+| Does every page, not a sample, match the old one, and if not, which value differs? | `page-sweep.mjs` |
 | Do the CMS counts still match? | `cms-counts.mjs` |
 | Is the sitemap free of pages that should not be in it? | `sitemap-exclude.mjs` |
 | Is the schema markup valid and true to the page? | `verify-jsonld.mjs`, `schema-vocab-check.mjs` |

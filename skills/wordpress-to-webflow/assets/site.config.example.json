@@ -117,6 +117,13 @@
       "within": "main",
       "skipWithin": ".sr-only"
     },
+    "sweep": {
+      "widths": [390, 768, 1440],
+      "parts": "main > article, main",
+      "footer": "footer",
+      "hide": "header, nav, [role=banner]",
+      "minPct": 0.5
+    },
     "headings": {
       "skipWithin": "nav, footer, [aria-hidden=true], .slider-track",
       "srOnly": ".sr-only",

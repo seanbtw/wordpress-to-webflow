@@ -4,6 +4,7 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 
 ## Contents
 - Measuring
+- The whole-page sweep: no samples
 - The Phase 7 checks
 - Code parity: the check that finds what the others miss
 - A check that did not run looks like a pass
@@ -14,7 +15,7 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 
 ## Measuring
 
-**Differences are found by measuring and by comparing code, never by comparing pictures.** A picture comparison says that something differs and not what; it passes a wrong value that happens to look close, and it cannot be rerun as a test. The measurements are: computed styles and boxes per element (`scripts/measure-blocks.mjs`), the order of sections and headings per page (`scripts/heading-sequence.mjs`), text, link and media sets (`scripts/compare-bodies.mjs`, `scripts/crawl-links.mjs`), and head tags (`scripts/seo-check.mjs`, `scripts/code-parity.py`). Screenshots may be kept as a record for the person reviewing.
+**Differences are found by measuring and by comparing code, never by comparing pictures.** A picture comparison says that something differs and not what; it passes a wrong value that happens to look close, and it cannot be rerun as a test. The measurements are: computed styles and boxes per element (`scripts/measure-blocks.mjs`), the order of sections and headings per page (`scripts/heading-sequence.mjs`), text, link and media sets (`scripts/compare-bodies.mjs`, `scripts/crawl-links.mjs`), and head tags (`scripts/seo-check.mjs`, `scripts/code-parity.py`). Screenshots may be kept as a record for the person reviewing. A picture has one working use: to find *where* to measure. The whole-page sweep (next section) lays two parts over each other to locate the places that differ, then reports the measured values at each place; the picture is never the verdict.
 
 - **Measure against the local WordPress at the same width, both sides of every breakpoint**: 390, 479/480, 767/768, 991/992, each of the theme's further steps and the pixel below it (for example 1199/1200), 1440 and 1920. This caught wrong breakpoints, missing steps, a line-height coming from an inline span, a slider overriding widths, clamp and paragraph sizes, tag padding and button geometry.
 - **Use the theme's own numbers** (compiled CSS, block options) as the expected values, and the browser's computed values on both sites as the measurement.
@@ -28,10 +29,23 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 - **Measure whole templates.** Give the measurement the template's whole content wrapper. A template measured on one block looked finished while three sections were missing from every item.
 - **A large mismatch count after a small change is usually one shifted pairing**, not thousands of faults (82,945 checks gave 26,568 mismatches after one element lost its box to `display: contents`). Fix the first mismatch and rerun before reading the rest.
 
+## The whole-page sweep: no samples
+
+**Every page and every item is compared with WordPress, whole, at phone, tablet and desktop widths. This is a required step, not something to run when someone asks.** `scripts/page-sweep.mjs --all` does it: it splits each page into its parts (the direct children of the main content wrapper, then the footer), pairs them in order, and for each pair reports a part missing or extra, a different height, and the measured values that differ under each place the two parts do not match (tag, font, size, weight, line height, colour, padding, margin, border, gap, display). `triage.md` then groups every difference by cause, the staging element and the property, by the number of pages it shows on, so one fix clears one row.
+
+Why it is required. Block specs prove the blocks they name, and a template example proves that one item. On the third build 27 specs were measured (45,708 checks at the phone width alone), every mismatch was explained, Phase 7 was signed off, and the owner then found differences by looking at pages. The first sweep, two thirds of the way through the site, had 375 of 863 parts differing, most of them the same few causes repeated across dozens of item pages: article bodies whose size, weight, colour and paragraph spacing no spec had measured, a related-items grid, image wrappers. The two earlier builds were signed off the same way and had never been swept. **A sample is a check that did not run on the rest.**
+
+- **Run it as soon as the first template is published** (Phase 4), again after every release of scripts or styles, and as a Phase 7 gate. Early, it costs minutes and finds a cause once; late, the same cause is on every item.
+- **Read `triage.md` from the top.** Fix the cause on the most pages, rerun, and only then read on: later rows are often the same fault seen from a parent element or a shifted neighbour.
+- **Fix missing and extra parts first.** Parts are paired by order, so one part missing on staging shifts every pair after it on that page.
+- **The first run is loud.** That is the point; do not raise the threshold to quieten it. A row that is truly not a fault (text that wraps one word differently, a third-party embed that draws itself) goes in `accepted-differences.md` with its reason.
+- **It compares pages at rest.** Hover and focus states, open menus and panels, sliders part-way through and anything behind a click are not in it; those belong to the behaviour checklist, which should measure the opened state the same way.
+- **It needs the local WordPress copy running and every staging path in `staging-paths.json`**; rerun `staging-paths.mjs` after publishing new items, and read the line that says how many page loads were compared.
+
 ## The Phase 7 checks
 
 1. **Structure**: component sequence per page equals the composition map, by script. The script must read the marker *this* build writes on each block (a data attribute, or the compiled class name). One written for another build's markers finds nothing and never truly runs; print how many pages and blocks it compared.
-2. **Measured layout**: every static page and template example measured whole against the local WordPress at 390, 768, 1200, 1440 and 1920 and both sides of each breakpoint, plus each fixed or sticky layout at a defined scroll position; the heading-order crawl over every path. **Triage by page height difference first** (lost or added content), then by the first mismatch on each page. Zero mismatches, or each one in the accepted-differences file.
+2. **Measured layout**: every static page and template example measured whole against the local WordPress at 390, 768, 1200, 1440 and 1920 and both sides of each breakpoint, plus each fixed or sticky layout at a defined scroll position; the heading-order crawl over every path. **Triage by page height difference first** (lost or added content), then by the first mismatch on each page. Zero mismatches, or each one in the accepted-differences file. **Then the whole-page sweep over every path** (`scripts/page-sweep.mjs --all`, section above): its triage empty, or every row left in the accepted-differences file. The specs alone do not pass this check.
 3. **Behaviour and accessibility**: the behaviour checklist, every line ticked with width and browser, including real Safari and iOS Safari. Menus, search, forms, sliders, accordions, filters, sticky elements, modals, maps, keyboard focus, reduced motion. **Every script-driven element on the WordPress page must map to a hook on the new page**: list the theme's own markers (an Alpine `x-data`, a slider library's classes) per page and confirm each has its module hook in the published HTML. A block with no hook compiles to markup that looks right and does nothing (a page menu that should stick, a share bar, tabs, a header search form).
 4. **Console**: no errors on any page at any width (`scripts/console-check.mjs`).
 5. **Links and media**: crawl staging (`scripts/crawl-links.mjs`): zero broken internal links; zero references to the old host or to localhost in HTML, `srcset`, CSS backgrounds, embeds or JSON-LD; then crawl again with requests to the old host blocked and confirm nothing visible breaks.
@@ -56,6 +70,7 @@ Also check what fires before consent. Tag manager containers often load lead-tra
 On the third build two checks reported nothing wrong because they compared nothing. The share picture on item pages had never been compared (the SEO check looked at titles and descriptions; code parity confirmed the tag existed on static pages), and the structure check had been written for an earlier build's markers. Both were found late, one of them by a second session.
 
 - **Every check prints what it compared**: how many pages, how many values. Zero compared is a failure, not a pass.
+- **Say what share of the site a check covered.** "27 specs passed" reads like the site passed; it meant 27 pages and examples out of nearly 200. Any check that samples is followed by one that does not (for layout, the whole-page sweep).
 - **Name the evidence for each "Done when" line by what was compared with what**, not by which script was run.
 - **Have a session that did not do the build check the result** before hand-off, against pages saved from the live site at the start: every sitemap address answers on staging, and title, description, `h1` and share picture match per page. It needs only `curl` and the saved pages, and it is not anchored on the build's own reports.
 

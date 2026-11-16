@@ -13,7 +13,7 @@ A method for rebuilding a WordPress site in Webflow, written from a full migrati
 2. **Inventory before building.** Every page, post, field, option, asset, URL and SEO value goes into machine-readable files, and the acceptance counts are generated from them, never typed.
 3. **Prove the risky parts small.** Settle component versus Collection List boundaries, body conversion, curation, filtering past 100 items and search on a handful of real examples before building at scale.
 4. **Import idempotently.** Identity is the WordPress id, not the slug, so the import can be rerun at cutover without duplicates.
-5. **Verify by script, with evidence.** Differences are found by comparing code and measured values (computed styles, box sizes, heading order, text and link sets), never by comparing pictures. A claim without output (counts, command results, measured values, file paths) does not count as done.
+5. **Verify by script, with evidence.** Differences are found by comparing code and measured values (computed styles, box sizes, heading order, text and link sets), never by comparing pictures. A claim without output (counts, command results, measured values, file paths) does not count as done. **And nothing is checked by sample alone**: every page and every item is compared with WordPress, whole, by the whole-page sweep (`scripts/page-sweep.mjs --all`), from the first published template onward. The owner should never be the one who finds a visible difference.
 
 ## What this assumes you have
 
@@ -136,3 +136,4 @@ Read `references/webflow-traps.md` before Phase 1. The short list:
 15. The HTML builder damages text three ways: it drops a space beside an inline element (glued words), turns a button with inner spans into placeholder text, and leaves off any class with no style. Check for all three straight after the first page insert.
 16. Anything that will carry a CMS binding is made with the element builder. A binding on an element inserted with the HTML builder, inside a list item, is dropped or refused with the "component map" conflict. And never switch a Collection List between hand-picked and automatic: its sort stops saving.
 17. An item's address is the one WordPress serves. A permalink plugin can set it for any post type, so read it from the served URL list, never from the post's own slug.
+18. Samples pass while pages differ. Twenty-seven measured specs were signed off on a site where a sweep of every page then found the same few faults on dozens of items. Sweep every page from Phase 4 on, and treat its triage as the gate (`references/verification.md`, "The whole-page sweep").
