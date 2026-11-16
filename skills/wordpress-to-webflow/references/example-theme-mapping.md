@@ -9,7 +9,7 @@ A theme's source is the specification, and it is someone's code: read it locally
 Find the equivalent of each of these in your theme before Phase 1.
 
 - **Screens were custom, not the framework's defaults**, with steps at 1200 and 1500 that Webflow has no breakpoint for. Webflow's 992, 768 and 480 lined up with three of the theme's screens; the others went in the CSS file or used the clamp switch.
-- **Every slider was Flickity** (with its fade add-on). The options in each block's script were the spec. A replacement library must copy what Flickity does: autoplay that wraps even without wrap-around, and autoplay stopping on drag. Whether autoplay pauses on hover is a choice to confirm with the owner (Flickity's default is to pause).
+- **Every slider was Flickity** (with its fade add-on). The options in each block's script were the spec. A replacement library must copy what Flickity does: autoplay that wraps even without wrap-around, and autoplay stopping on drag. Whether autoplay pauses on hover is a choice for the owner (Flickity's default is to pause): apply the old site's behaviour and put it on the waiting list.
 - **Some blocks were chosen by user agent** (`wp_is_mobile`), and containers had a "hide on mobile / tablet / desktop" option decided on the server by a device-detection library. On a second site, the home page served a different section to phones and tablets.
 - **Core block columns** wrapped below 782px, a width neither the theme's screens nor Webflow has.
 - **Every `ul` under the article wrapper got bullets and spacing**, every container set its own text colour (dark and light variants), and a global paragraph size beat a larger parent. These went into the CSS file before any block was built.
@@ -21,13 +21,15 @@ Find the equivalent of each of these in your theme before Phase 1.
 
 ## Block mapping
 
+The theme had 24 blocks; the table shows the ones whose mapping carried a lesson, with near-identical blocks grouped in one row.
+
 | Theme block | In Webflow | Notes |
 |---|---|---|
 | Spacer | Component, variants for the padding tiers and optional rule | |
 | Buttons | Component with a row slot holding Button instances | Button is a div with a full-size link overlay and hidden label (no slots inside Link Blocks); icon slots |
 | Icons | Small components, theme SVGs inline with `currentColor` | |
 | Media | Component | |
-| In-page navigation | Component, a variant per menu, link lists inside the component | Real `<button>` toggle |
+| In-page navigation | Component, a variant per menu, link lists inside the component (have the script show the list that holds the current page; a variant class was published on one instance only: `webflow-traps.md`) | Real `<button>` toggle |
 | Accordion | Component plus an item component, dark and light | Behaviour in the bundle |
 | Full-width call to action | Component with variants and a Buttons slot | |
 | Static hero | Component | |

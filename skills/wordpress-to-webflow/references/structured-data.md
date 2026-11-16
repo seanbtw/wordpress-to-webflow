@@ -50,13 +50,13 @@ Least invasive first:
 
 Placeholders are HTML-escaped but not JSON-escaped: **a line break in a bound field makes that item's JSON invalid.** Check every item, and tell the owner which fields must stay on one line. HTML-escaping also means an `&` in a name is printed as `&amp;` inside the JSON: valid JSON, wrong text for a reader that does not decode it. List the items it affects.
 
-Keep the JSON-LD records in page and template head code, one per page type, written by one generator script; never in the site-wide head code, which other people's scripts share.
+Keep the JSON-LD records in page and template head code, one per page type, written by one generator script. The site-wide head code, which other people's scripts share, is the last resort of step 3 above and only for a block that is the same on every page.
 
 Script-built JSON-LD (for example an FAQ block assembled in the browser) is read by Google but not by crawlers that don't run JavaScript. Prefer server-rendered blocks.
 
 ## Checking
 
-- `scripts/verify-jsonld.mjs`: every sitemap URL fetched without JavaScript; each block is valid JSON; every `@id` reference resolves on its page; no empty values, leftover placeholders or `&quot;`; every text value appears on the page, elsewhere on the site, or in the facts file (a small JSON file you keep per site with the register facts: legal name, company number, registered office, parent, and the URL each came from); CMS-driven values equal the CMS. Script-built blocks need a second pass in a real browser.
+- `scripts/verify-jsonld.mjs`: every sitemap URL fetched without JavaScript; each block is valid JSON; every `@id` reference resolves on its page; no empty values, leftover placeholders or `&quot;`; every text value appears on the page, elsewhere on the site, or in the facts file (a small JSON file you keep per site with the register facts: legal name, company number, registered office, parent, and the URL each came from). The script does not read the CMS: compare CMS-driven values with the importer's records or a spot check. Script-built blocks need a second pass in a real browser.
 - Both JSON-LD scripts read the sitemap from the live origin by default. Before a migrated site launches that is still WordPress, so pass `--sitemap-origin` with the staging address.
 - `scripts/schema-vocab-check.mjs`: every type and property against schema.org's own vocabulary file. Use this when validator.schema.org answers scripted requests with a CAPTCHA.
 - validator.schema.org by script, when it answers: `POST /validate` with `url=<page>` form-encoded, sent from a page on the validator's own origin; the reply is JSON after a `)]}'` prefix.

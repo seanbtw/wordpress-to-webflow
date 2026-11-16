@@ -44,7 +44,7 @@ The schema markup part works on any Webflow site, migrated or not.
 
 1. **Build from source, not by eye.** The theme and database are the specification. The backup runs locally and that copy is the reference for every comparison.
 2. **Inventory before building.** Every page, post, field, option, asset, URL and SEO value goes into machine-readable files. Acceptance counts are generated from them, never typed.
-3. **Prove the risky parts small.** Component boundaries, body conversion, curated lists, filtering past 100 items and search are settled on a handful of real examples before anything is built at scale.
+3. **Prove the risky parts small.** Component boundaries, body conversion, curated lists, filtering past 100 items, search, and a list of the template's own collection are settled on a handful of real examples before anything is built at scale.
 4. **Import so it can be rerun.** Identity is the WordPress id, not the slug, so the same import runs again at cutover without creating duplicates.
 5. **Verify by script, with evidence.** Differences are found by comparing code and measured values, never pictures. A claim without output (counts, command results, measured values, file paths) does not count as done.
 
@@ -81,7 +81,7 @@ The schema markup part works on any Webflow site, migrated or not.
 skills/wordpress-to-webflow/
 ├── SKILL.md                       the method, what to ask the owner for, where to look
 ├── references/                    nine files, loaded only when needed
-├── scripts/                       24 scripts, config-driven
+├── scripts/                       25 scripts, config-driven
 └── assets/                        an example config file
 ```
 
@@ -99,7 +99,7 @@ skills/wordpress-to-webflow/
 
 ## The scripts
 
-All of them read one `site.config.json` (start from [`site.config.example.json`](skills/wordpress-to-webflow/assets/site.config.example.json)) and take the Webflow token only from the `WEBFLOW_TOKEN` environment variable. Full details are in [`scripts/README.md`](skills/wordpress-to-webflow/scripts/README.md).
+All but one read one `site.config.json` (start from [`site.config.example.json`](skills/wordpress-to-webflow/assets/site.config.example.json)) and take the Webflow token only from the `WEBFLOW_TOKEN` environment variable. Full details are in [`scripts/README.md`](skills/wordpress-to-webflow/scripts/README.md).
 
 | Question | Script |
 |---|---|
@@ -122,7 +122,7 @@ All of them read one `site.config.json` (start from [`site.config.example.json`]
 | What exactly would a live publish ship? | `diff-staging-live.py` |
 | Does an unreleased script build work on real pages? | `bundle-swap.mjs` |
 
-Browser checks block common trackers and form submissions by default, so a test run cannot create a real lead.
+No browser check ever submits a form, so a test run cannot create a real lead; all but the console and link checks also block common trackers.
 
 ## The traps that cost the most time
 
@@ -132,14 +132,14 @@ Browser checks block common trackers and form submissions by default, so a test 
 1. Webflow's breakpoints are rarely all the theme's. Read the theme's real screens and measure both sides of every one.
 2. Collection List settings, "current item" links and multi-image sources are partly Designer-only. Plan a short Designer pass at the end of each structure.
 3. Removing a Collection List's Empty State deletes the whole list, silently. Hide it instead.
-4. A Collection List built inside a component definition by API does not survive.
+4. Removing a Collection List's Empty State removes the whole list, and the answer says only that an element was removed.
 5. A timed-out bulk create may still have created the items. Re-list and match on your own id before sending again.
 6. Redirect and robots.txt APIs need an Enterprise plan. The dashboard import works on other plans, and replaces every existing redirect.
 7. `noindex` does not remove a page from Webflow's sitemap. That is a separate setting, and saving page settings in the Designer resets it.
 8. CMS templates print no Open Graph or Twitter tags unless you add them.
 9. Items an editor creates lack importer-only fields. Anything keyed on those fields silently drops new items.
 10. The old site holds redirects and behaviour its exports don't show. Capture what the live site actually does.
-11. The API reports success for writes it did not store: classes with no style behind them, some bindings, `unset` values, shorthand grid properties. Read back, then measure.
+11. The API reports success for writes it did not store: classes with no style behind them, bindings on some HTML-built elements, a sort on a list switched to hand-picked and back, and `unset` values and one-value grid shorthands in the HTML builder's CSS. Read back, then measure.
 12. A site with no site plan builds and publishes to staging, but refuses 301 redirects and sitemap controls and shows only sample search results. Those checks move to cutover.
 13. A template measured in part hides what is missing from the rest. Measure whole templates, and crawl every page's heading order early.
 
@@ -183,12 +183,12 @@ cd wordpress-to-webflow/skills/wordpress-to-webflow/scripts && npm install && np
 
 - The Webflow MCP server connected, with its Designer companion app, and a Webflow site API token
 - Docker, for the local copy of the old site
-- Node 20.18 or later, Python 3.9 or later, and `curl`
+- Node 20.18.1 or later, Python 3.9 or later, and `curl`
 - A full backup of the WordPress site (files and database) and the host's redirect rules export
 
 ## Honest limits
 
-- **It has been through three migrations, all of sites on the same theme.** The second and third builds ran their own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures; two of them (`seo-check.mjs`, `glued-words.mjs`) have also been run against a real staging site, the rest not yet.
+- **It has been through three migrations, all of sites on the same theme.** The second and third builds ran their own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures; five of them (`seo-check.mjs`, `glued-words.mjs`, `page-sweep.mjs`, `console-check.mjs`, `compare-bodies.mjs`) have also been run against a real staging site, the first two over every page and the others on sample pages. The rest not yet.
 - **Webflow moves.** The limits were observed in November 2026 on a Premium site plan and on sites with no plan; a few changed within a day, and a few differed from one build to the next. Re-test one with a throwaway write before leaning on it.
 - **It does not ship an importer, an inventory generator, a block compiler or a behaviour test suite.** Those depend on each site's theme and content model. The skill says what each must do.
 - **It never writes copy.** Every word on the rebuilt site, and every string in the structured data, comes from the old site or a public record.

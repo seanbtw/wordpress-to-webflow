@@ -4,7 +4,10 @@
 // rewrites are applied, and an old uploads URL becomes the file's new URL when the media manifest knows it.
 //
 // Usage:    node compare-bodies.mjs <type> <slug> [<slug> …] [--wp-selector ".css"] [--config site.config.json]
-//           The page is loaded at <wordpress.localOrigin>/<type>/<slug>/ and <webflow.stagingOrigin>/<type>/<slug>.
+//           The page is loaded at <webflow.stagingOrigin>/<type>/<slug>, and on WordPress at the address urls.csv
+//           gives for that staging path (columns path, expected_path), else <wordpress.localOrigin>/<type>/<slug>/.
+//           Needs the template to be published, so it runs from Phase 4 on; the converter's own comparison of its
+//           output is the Phase 2 check.
 // Inputs:   wordpress.localOrigin, webflow.stagingOrigin, site.liveOrigin
 //           checks.bodies.wpSelector          CSS selector of the body in the WordPress theme
 //           checks.bodies.wpSelectorByType    (optional) { "<type>": "selector" } where a post type's body differs
@@ -20,7 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as cheerio from 'cheerio';
 import { chromium } from 'playwright';
-import { need, opt, origin, inventory, verify, arg, positionals } from './site.mjs';
+import { need, opt, origin, inventory, verify, arg, positionals, readCsv } from './site.mjs';
 import { guard } from './block.mjs';
 
 const WP = origin('wordpress.localOrigin');
@@ -68,6 +71,11 @@ export function fingerprint(html) {
 }
 
 const [type, ...slugs] = positionals(['--wp-selector']);
+// staging path -> WordPress path, for items WordPress serves at a custom address
+const wpPathFor = {};
+const urlsFile = opt('paths.inventoryDir', null) ? inventory('urls.csv') : null;
+if (urlsFile && fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) if (r.expected_path && r.path) wpPathFor[r.expected_path.split('?')[0].replace(/\/+$/, '') || '/'] ??= r.path;
+const wpPath = (t, s) => wpPathFor[`/${t}/${s}`] || `/${t}/${s}/`;
 if (!type || !slugs.length) { console.error('compare-bodies: give a post type and at least one slug, for example: node compare-bodies.mjs blog my-first-post'); process.exit(2); }
 const WPSEL = arg('--wp-selector', null) || opt('checks.bodies.wpSelectorByType', {})[type] || need('checks.bodies.wpSelector');
 const WFSEL = need('checks.bodies.wfSelector');
@@ -88,7 +96,7 @@ for (const slug of slugs) {
     if (el) await el.screenshot({ path: `${outDir}/${slug}-${side}.png` });
     return { status: r.status(), html };
   };
-  const a = await get(`${WP}/${type}/${slug}/`, WPSEL, 'wp');
+  const a = await get(WP + wpPath(type, slug), WPSEL, 'wp');
   const c = await get(`${WF}/${type}/${slug}`, WFSEL, 'webflow');
   if (a.html === null) { res.push({ slug, error: `no ${WPSEL} on WordPress`, status: a.status }); continue; }
   if (!c.html) { res.push({ slug, error: `no ${WFSEL} on staging`, status: c.status }); continue; }

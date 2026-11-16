@@ -1,7 +1,9 @@
 // block.mjs — keeps third-party trackers quiet during verification runs: analytics and advertising requests are
 // aborted, and form submissions to the hosts the config names are never sent.
 //
-// Usage:    import { guard, BLOCK } from './block.mjs';  await guard(browserContext);   (a Playwright browser context)
+// Usage:    import { guard, guardPosts, BLOCK } from './block.mjs';  await guard(browserContext);   (a Playwright browser context)
+//           guard: trackers aborted and form posts never sent. guardPosts: form posts never sent, everything else
+//           left alone, for the checks that must see the page as a visitor's browser loads it (console, links).
 // Inputs:   checks.blockRequestRes (optional)   more regular expressions for request URLs to abort
 //           checks.blockPostRes (optional)      more hosts whose POST requests are aborted, on top of the common
 //                                               form vendors listed below, so a check can never submit a real form
@@ -24,5 +26,14 @@ export async function guard(context) {
     if (BLOCK.test(u)) return route.abort();
     if (route.request().method() === 'POST' && POSTS.some((r) => r.test(u))) return route.abort();   // never submit forms
     return route.continue();
+  });
+}
+
+/** Form posts are never sent; every other request goes on (to the next route handler, if the context has one). */
+export async function guardPosts(context) {
+  await context.route('**/*', (route) => {
+    const q = route.request();
+    if (q.method() === 'POST' && POSTS.some((r) => r.test(q.url()))) return route.abort();
+    return route.fallback();
   });
 }

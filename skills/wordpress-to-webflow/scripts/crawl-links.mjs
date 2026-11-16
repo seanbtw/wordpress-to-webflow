@@ -20,6 +20,7 @@
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 import { opt, origin, verify, arg, readJson, oldHosts } from './site.mjs';
+import { guardPosts } from './block.mjs';
 
 const WF = origin('webflow.stagingOrigin');
 const only = arg('--only', null);
@@ -77,6 +78,7 @@ await Promise.all(Array.from({ length: 8 }, async () => {
 const isOld = (host) => LIVE_HOSTS.includes(host) || host === WP_HOST;
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await guardPosts(ctx);   // never post a form; registered first, so the old-host rule below is asked first
 await ctx.route((url) => isOld(url.host), (route) => route.abort());
 const blocked = [];
 for (const path of paths.filter((p) => !SKIP.some((pre) => p.startsWith(pre)))) {

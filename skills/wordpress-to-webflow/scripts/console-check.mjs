@@ -1,7 +1,7 @@
 // console-check.mjs — browser console errors, in two modes.
 //
 // 1. Staging check (default). Loads every static page, one item of every collection, any extra paths and a path
-//    that does not exist, at each width, in headless Chromium, scrolls to the bottom and collects console errors and
+//    that does not exist (with --all: every page and every item in staging-paths.json), at each width, in headless Chromium, scrolls to the bottom and collects console errors and
 //    page errors. It also reads each page's HTML and lists the external stylesheets and scripts: when the config
 //    names a release bundle there must be exactly one stylesheet and one script of it, and every other external file
 //    must be a declared dependency (Webflow's own files, plus the hosts the config declares). Errors raised by
@@ -11,7 +11,8 @@
 //    and what the console said. Use it to show a change did nothing visible: the untouched site first, the changed
 //    site second. Console lines already present on the first origin are not reported.
 //
-// Usage:    node console-check.mjs [--config site.config.json]
+// Usage:    node console-check.mjs [--all] [--config site.config.json]
+//           Trackers are left to run, so the console is the one a visitor's browser shows; form posts are never sent.
 //           node console-check.mjs --compare https://www.example.com https://example.webflow.io
 // Inputs:   webflow.stagingOrigin
 //           <verifyDir>/staging-paths.json (mode 1, unless checks.console.paths is set)
@@ -32,6 +33,7 @@
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 import { need, opt, origin, optOrigin, verify, has, positionals, readJson } from './site.mjs';
+import { guardPosts } from './block.mjs';
 
 const rx = (s) => new RegExp(s);
 const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -45,9 +47,9 @@ async function staging() {
   let paths = opt('checks.console.paths', null);
   if (!paths) {
     const stg = readJson(verify('staging-paths.json'), 'staging-paths.mjs');
-    paths = Object.keys(stg).filter((p) => stg[p].kind === 'page');
-    const firstOf = {};   // one item per collection
-    for (const [p, v] of Object.entries(stg)) if (v.kind === 'item' && !firstOf[v.collection]) firstOf[v.collection] = p;
+    paths = Object.keys(stg).filter((p) => has('--all') || stg[p].kind === 'page');
+    const firstOf = {};   // one item per collection, unless --all has taken every item already
+    if (!has('--all')) for (const [p, v] of Object.entries(stg)) if (v.kind === 'item' && !firstOf[v.collection]) firstOf[v.collection] = p;
     paths.push(...Object.values(firstOf), ...opt('checks.console.extraPaths', []), NOT_FOUND);
   }
   const WIDTHS = opt('checks.console.widths', [390, 768, 992, 1440]);
@@ -69,6 +71,7 @@ async function staging() {
   const ownHost = new URL(WF).host;
   for (const w of WIDTHS) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
+    await guardPosts(ctx);
     for (const path of paths) {
       const page = await ctx.newPage(); const errs = []; const third = [];
       // third party: anything raised inside another origin's frame or script, or text the config names. Kept apart as notes.

@@ -22,9 +22,9 @@ Generate all of these with one script, so cutover can rerun it and diff:
 - `options.json`, `navigation.json`: theme options, menus, footer, social links, snippets.
 - `seo.csv`: the **rendered** SEO output per URL (title, description, canonical, robots, Open Graph image, JSON-LD), fetched from the local pages. Rendered values, not the plugin's raw patterns. Keep the breadcrumb names the SEO plugin prints per URL (HTML-decoded): the new site's breadcrumbs reuse them, so no wording is invented.
 - `device-blocks.csv`: every container or block the theme shows or hides by device, with the page it is on.
-- `assets.csv`: every referenced upload with path, size, hash, dimensions, alt text and the records that use it.
+- `assets.csv`: every referenced upload with path, size, hash, dimensions, alt text and the records that use it (`seo-check.mjs` reads the columns named `file` and `alt`).
 - `urls.csv`: every public URL with its expected destination on the new site.
-- `redirects.csv`: the redirect rows the build produces (host rules converted, deliberate path changes, slugs Webflow altered). The importer appends a row here whenever a slug changes.
+- `redirects.csv`: the redirect rows the build produces (host rules converted, deliberate path changes, slugs Webflow altered). It is an output, rewritten by every run of `build-redirects.py`; a slug the importer changes goes into `redirects.extra` in the config.
 - `counts.md`: acceptance counts per type and status. Generated, never typed.
 
 ## Reference measurements
@@ -35,8 +35,8 @@ Differences are found by comparing these values and the code, never by comparing
 
 ## Reading the live site
 
-- **The local copy is the reference.** The live site is read only for what the backup cannot hold: redirects, and what changed since the backup.
-- **A managed host's firewall often refuses plain scripted requests** from the build machine. Fetch live pages through a real browser, or from the server itself.
+- **The local copy is the reference.** The live site is read only for what the backup cannot hold: redirects, what changed since the backup, and one saved copy of each page's HTML taken at the start, which the code-parity diff and the outside check compare against later.
+- **A managed host's firewall often refuses plain scripted requests** from the build machine, sometimes after only a handful. The scripts that read the live site (`live-capture.mjs`, `code-parity.py`) go one request a second for that reason and may still be refused: run them early, and if they are blocked, fetch through a real browser or from the server itself.
 - **With SSH access and WP-CLI, "what changed since the backup" takes minutes**, with no new multi-gigabyte download: run the same read-only queries (post ids, modified dates, content hashes, option values) on the live server and on the local copy and compare the text. Ask the owner before connecting, and run nothing that writes.
 
 ## Things WordPress does that the exports don't show
@@ -46,9 +46,8 @@ Differences are found by comparing these values and the code, never by comparing
 - **A permalink plugin can set the address of any post type** (see `import.md`). The address in the post's own row is then not the one served.
 - **Blocks chosen by device, not width.** Some themes pick markup by user agent (`wp_is_mobile`, or a detection library behind a per-container "hide on mobile / tablet / desktop" option), on the server. A desktop fetch never sees the phone version: one home page served a different news section to phones and tablets. List every container that carries such an option in the inventory, fetch and measure with a phone user agent as well, and compare phones with a real phone profile, not a narrow desktop window.
 - **wptexturize**: WordPress renders `...` as `…` and straight quotes as curly. Compare and copy against rendered text, not the raw field.
-- **The host's firewall can block scripted reads of the live site** after a handful of plain requests. Plan on the local copy from the backup as the reference, and keep live reads few, slow and early.
 - **Term order**: templates often print taxonomy terms by name, not by stored order. Check which the theme uses before storing references in display order.
-- **Ties in date order**: WordPress's own order for items with equal dates varies between queries, so the reference is not stable there. Don't chase it, and don't break ties on an importer-only field (new items won't have one): sort on the date field editors fill and let Webflow's own order settle ties.
+- **Ties in date order**: WordPress's own order for items with equal dates varies between queries, so the reference is not stable there. Don't chase it, and don't sort a list on an importer-only field (new items won't have one, and fall to the end): sort on the date field editors fill and let Webflow's own order settle ties. A script may use an importer timestamp as the tie-break within a day (`import.md`).
 - **Alt text fallbacks**: some themes print the attachment title when alt is empty. Decide per site whether to copy that.
 - **Theme rules that hang off a wrapper** are lost when blocks are rebuilt outside it: list bullets under an `article` wrapper, text colour set by each container, a global `p` size beating a larger parent. Grep the theme CSS for descendant rules on its wrappers before building blocks. The same goes for size: a theme that sets a slider's container to 84% of the row, except inside its page container where it is 100%, gives a block compiled on its own the 84% (cards 80 to 200 px too narrow on every hand-picked slider). Compile each block at the width it has on its real page, or check the theme CSS for a rule scoped to the page container for each compiled root.
 - **Layout lives in three places the theme's utility classes don't show**: WordPress core block CSS (core columns are flex, wrap below 782px with `!important`, with their own gap; per-page `.wp-container-*` rules are printed inline), block-scoped theme rules that hang off a block's own class, and padding a script adds to `main` for a fixed header. Keep 782 as an exact media query in the stylesheet; Webflow has no breakpoint there.
