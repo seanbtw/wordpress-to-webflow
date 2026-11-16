@@ -15,7 +15,8 @@
 // Outputs:  <verifyDir>/links.json and <verifyDir>/links.md
 // Exit codes: 0 nothing broken; 1 a broken link, an old-host reference or a page that breaks with the old host
 //           blocked; 2 config or input missing.
-// Network:  the staging origin only (requests to the old hosts are blocked in the browser pass).
+// Network:  the staging origin, plus whatever its pages load in the browser pass (trackers included, so the pass sees
+//           what a visitor's browser sees). Requests to the old hosts are blocked there, and no form is ever posted.
 // Needs:    playwright (npm install, then npx playwright install chromium).
 import fs from 'node:fs';
 import { chromium } from 'playwright';

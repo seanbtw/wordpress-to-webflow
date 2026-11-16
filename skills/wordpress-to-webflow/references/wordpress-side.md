@@ -14,7 +14,7 @@
 
 ## Inventories
 
-Generate all of these with one script, so cutover can rerun it and diff:
+Generate all of these with one script, so cutover can rerun it and diff (all but `redirects.csv`, which the redirect build writes):
 
 - `posts.csv`: every post of every type with id, type, status, slug, title, dates, content hash.
 - `pages/<slug>.json`: the parsed block tree per page, reusable blocks expanded.
@@ -36,7 +36,7 @@ Differences are found by comparing these values and the code, never by comparing
 ## Reading the live site
 
 - **The local copy is the reference.** The live site is read only for what the backup cannot hold: redirects, what changed since the backup, and one saved copy of each page's HTML taken at the start, which the code-parity diff and the outside check compare against later.
-- **A managed host's firewall often refuses plain scripted requests** from the build machine, sometimes after only a handful. The scripts that read the live site (`live-capture.mjs`, `code-parity.py`) go one request a second for that reason and may still be refused: run them early, and if they are blocked, fetch through a real browser or from the server itself.
+- **A managed host's firewall often refuses plain scripted requests** from the build machine, sometimes after only a handful. `live-capture.mjs`, and whatever fetch saves the live pages that `code-parity.py` later reads from disk, go one request a second for that reason and may still be refused: run them early, and if they are blocked, fetch through a real browser or from the server itself.
 - **With SSH access and WP-CLI, "what changed since the backup" takes minutes**, with no new multi-gigabyte download: run the same read-only queries (post ids, modified dates, content hashes, option values) on the live server and on the local copy and compare the text. Ask the owner before connecting, and run nothing that writes.
 
 ## Things WordPress does that the exports don't show
@@ -55,7 +55,7 @@ Differences are found by comparing these values and the code, never by comparing
 - **Stored alt text is printed unescaped by some themes**, so an alt containing a double quote is cut short in the live HTML. Compare against the stored value and decide which to carry.
 - **A stray query parameter can change the page.** A listing that reads every query parameter as a filter shows its "clear filters" state when a measuring tool adds a cache-buster. Never add one on the WordPress side.
 - **The host's redirect rules do not run on the local copy.** A path that 404s locally may be redirected on live by the host, sometimes through a second host rule. Anything that asks "does this old URL work?" must apply the host's rules first (see `redirects.md`).
-- **Inline colours**: editors colour text with inline `style` on dark sections. Dropping it leaves dark text on dark; map each colour to a class.
+- **Inline colours**: editors colour text with inline `style` on dark sections. Dropping it leaves dark text on dark: map each colour that the text needs to be readable to a class, and record the rest as an accepted difference for the owner (`import.md`).
 - **Scripts that re-run on load**: a filter link with an init hook can reset state on every load. Measure filtered states against the server render with JavaScript off, and don't copy the reset.
 - **Timing quirks are part of the reference**: if one block equalises heights only after another fires a resize, equal heights depend on block order. Copy the rule, not the look on one page.
 - **Placeholder content**: check the content, not just the layout. FAQ answers may be empty or Lorem ipsum; structured-data emitters must skip them.

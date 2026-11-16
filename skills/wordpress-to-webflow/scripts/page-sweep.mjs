@@ -7,7 +7,8 @@
 // parts over each other ONLY TO LOCATE where they differ (16 px cells joined into regions), then reads the computed
 // values of the element under each region on both sides (tag, font, size, weight, line height, colour, padding, margin,
 // border, gap, display and so on). So every difference is reported as a measured value, WordPress → staging. The
-// pictures it saves are for finding the place, never the verdict.
+// pictures it saves are for finding the place, never the verdict: a part listed for its pixels alone, with no value
+// differing, still has to be explained (a different slide, a resampled image, a lazy image painted blank).
 //
 // Usage:    node page-sweep.mjs --all [--widths 390,768,1440] [--conc 4] [--limit N] [--bust]
 //           node page-sweep.mjs /about /blog/a-post            only these paths
@@ -39,9 +40,10 @@
 //           is clicked or submitted. --bust adds a ?sweep= parameter to staging requests to get past a cache; leave
 //           it off on pages whose scripts read the query string (filters), where it changes what is shown.
 // Needs:    playwright, pixelmatch, pngjs (npm install, then npx playwright install chromium).
-// Reading the result: start with triage.md. Fix causes from the top; one row usually covers many pages. Then
-//           summary.md for parts missing, extra or a different height. Run again until it is clean or every row
-//           left has a line in accepted-differences.md. Expect the first run to be loud.
+// Reading the result: first the parts missing or extra (the second table of triage.md): parts are paired in order,
+//           so one missing part shifts every pair after it on that page. Then the causes, from the top of
+//           triage.md; one row usually covers many pages. Run again until it is clean or every row left has a
+//           line in accepted-differences.md. Expect the first run to be loud.
 // Known limit: lazy images on the old site can paint blank in the full-page capture although they are loaded;
 //           it shows as pixels differing with equal heights and no value differing. Group and count those rows.
 import fs from 'node:fs';

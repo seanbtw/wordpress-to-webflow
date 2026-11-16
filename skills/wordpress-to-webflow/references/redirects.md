@@ -2,7 +2,7 @@
 
 ## Build the manifest from every source
 
-One file, `verify/url-manifest.csv`, with every source URL and what should happen to it on the new site: expected path, expected status, expected final destination, and a **content identity** (page title or an element id) so that an unrelated page or a soft 404 answering 200 is caught.
+One file, `verify/url-manifest.csv`, with every source URL and what should happen to it on the new site: expected path, expected status, expected final destination, and a **content identity** (the page title, which is what `check-urls.mjs` compares) so that an unrelated page or a soft 404 answering 200 is caught.
 
 Sources, all of them:
 
@@ -28,7 +28,7 @@ Classify the host rules as exact, wildcard, query-conditional, domain-conditiona
 - The import runs asynchronously; an "Import in progress" toast confirms the click landed. Verify by the dashboard list and then by the checker.
 - **In old paths, put a `%` in front of each of these characters** (a prefix, not percent-encoding): `% - & * ( ) = _ + ?`. So `/old-page_2?id=7` is written `/old%-page%_2%?id%=7`. The brackets and star of a `(.*)` capture are the one exception and stay bare. Unescaped hyphens break wildcard rules silently (exact ones may happen to work).
 - **Wildcards**: `(.*)` in the old path, `%1` in the target. Prefix rules work (`/name(.*)`).
-- **Order**: rules apply in the order they were added, which for an import is the CSV row order, so put specific rules before wildcards. In testing Webflow also seemed to prefer the more specific of two prefix rules, but don't rely on that.
+- **Order**: rules apply in the order they were added, which for an import is the CSV row order, so put specific rules before wildcards. `build-redirects.py` writes the config's single redirects first, then its prefix rules, then the exact rows it derives from the live capture, and the host's wildcard rules last: if one of your prefix rules would swallow an address that needs its own target, name that address in `redirects.extra`. In testing Webflow also seemed to prefer the more specific of two prefix rules, but don't rely on that.
 - **Matching is case-sensitive.** Trailing slashes are normalised first (`/x/` 301 → `/x`, then the rule), so a slash-ended old URL takes two hops.
 - **A redirect drops the query string** unless the old path matches it (`/old%?search%=(.*)` → `/search?query=%1`).
 - **`%3A` and `%2C` in a target are read as capture groups.** Write `:` and `,` literally.

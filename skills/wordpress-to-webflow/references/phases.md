@@ -77,7 +77,7 @@ The proofs need content before Phase 2 exists: create the one or two collections
 5. **Search indexing.** Enable site search, decide what is indexed, search a phrase unique to a component body after the index builds, and record how results differ from WordPress's. On a site with no plan, search returns sample results only: build the page, and move this proof to cutover.
 6. **A list of the template's own collection on a template page.** "Related items" blocks usually list the same collection the template belongs to. Build one by API, publish, and fetch an item page. If the list publishes empty (it did on one site with no plan, though the same list rendered on a clean no-plan site with 4 items and with 60, so the cause is not the plan alone), feed those blocks from the listing page by script instead, and put the data the script needs on the listing cards.
 
-Done when all six have a decision, a staging URL and the published HTML or measurement that shows it in `PROGRESS.md`.
+Done when all six have a decision, a staging URL and the published HTML or measurement that shows it in `PROGRESS.md` (on a site with no plan, the search proof is the built page, with its real-results test listed as waiting).
 
 ## Phase 2: CMS schema and import
 
@@ -101,9 +101,9 @@ Done when
 - Theme buttons and spacers should compile to the Phase 1 components, not to inline markup: compound rules (an icon circle on a button with an icon) are lost otherwise.
 - Empty paragraphs are dropped by a naive compile but hold a margin on WordPress; measure and carry the gap (and see `import.md` for the no-break-space case).
 - A block compiled on its own loses rules scoped to an ancestor (a width that differs inside the page container). Compile each block in its real page context (`wordpress-side.md`).
-- Scan the compiled CSS for `unset` and `initial` before every insert; it is the fault that returns most often.
+- Scan the compiled CSS for `unset`, and for one-value `grid-column` and `grid-row`, before every insert; it is the fault that returns most often.
 - A trailing space inside an inline element is dropped by the HTML builder, and a `<button>` with child spans has come out as placeholder text on two builds though not on a clean site (`webflow-traps.md`, "Building elements"): mend the space after the insert or move it outside the element, compile such buttons to a div with a button role, and fail the build on any placeholder in the published HTML.
-- On templates and list cards, the compiler must mark every block, heading and list that will take a CMS binding, so those are created with the element builder and the rest goes in as HTML (an HTML-built paragraph, span or link takes a binding). A binding on an HTML-built block, heading or list inside a list item is dropped or refused (`webflow-traps.md`, "Write conflicts").
+- On templates and list cards, the compiler must mark every block, heading and list that will take a CMS binding, so those are created with the element builder and the rest goes in as HTML (an HTML-built paragraph, span or link keeps a visibility binding, and a link a text binding). A binding on an HTML-built block, heading or list inside a list item is dropped or refused (`webflow-traps.md`, "Write conflicts").
 - **Never fold the framework's base reset into a class that also styles the element's type.** A utility framework resets buttons at its base layer (`line-height: inherit`, `color: inherit`); written into the element's own combo class, the reset beats the type class (menu items at line-height 1.5 for 1.1, twelve filter buttons). Leave reset properties off any element that carries a type class, and keep one source of truth per property, not the Webflow class and the bundle stylesheet both.
 - **Resolve utilities in the stylesheet's rule order, not the order they sit in the class attribute.** With `transition-all` and `duration-500` on one element, the later rule in the stylesheet wins whichever is written first.
 - **A utility with no breakpoint prefix belongs at the base, at every size.** One written only at the phone breakpoint cost a menu 40 px of padding at the tablet width.
@@ -126,16 +126,16 @@ Done when
 
 Compose each page from a **composition map**: for every page, the ordered list of theme blocks from `inventory/pages/<slug>.json`, each with the Webflow component or shell it maps to and the values it carries. Generate it from the inventory; a second script reads each built page's component list from Webflow and compares the sequence, so section order is checked by script, not by eye.
 
-Build one page shell (navigation, main, footer) and duplicate it. Any page not made from the shell (one created earlier for a proof, or a utility page) needs checking for all three. Give every collection template at least the navigation and footer, including collections whose WordPress pages render but are empty: a template with nothing in it makes every item address answer "not found". Where WordPress itself answers "not found" for every item of a type, that is the tool to use: leave the template empty on purpose.
+Build one page shell (navigation, main, footer) and duplicate it. Any page not made from the shell (one created earlier for a proof, or a utility page) needs checking for all three. Give every collection template at least the page shell (navigation, main wrapper, footer), including collections whose WordPress pages render but are empty: a template with nothing in it makes every item address answer "not found". Where WordPress itself answers "not found" for every item of a type, that is the tool to use: leave the template empty on purpose.
 
 **Measure whole templates, and crawl early.** A template's measurement spec takes the template's whole content wrapper, not the one block that was just built. On the second build a case-study template was measured on its meta block only, and three sections present on every WordPress item were missing until the last day. Run `scripts/heading-sequence.mjs` over every path as soon as templates exist, and again after each template change. **Then sweep every page**: `scripts/page-sweep.mjs --all` compares every page and every item with WordPress, whole, at three widths, and groups what differs by cause (`verification.md`, "The whole-page sweep"). A template example proves one item; the sweep is what proves the other hundred. It is part of this phase, not a favour to the owner at the end.
 
 List every block the theme shows or hides by device (decided on the server from the user agent, not from the width) and build both versions, with a small early script that marks the page for phones and tablets and CSS that shows the right one.
 
 Done when
-- Every path in `inventory/urls.csv` resolves on staging to the right page.
+- Every path in `inventory/urls.csv` that is a page on the new site resolves on staging to the right page (rows that land only through a redirect are checked in Phase 6).
 - Section sequence per page equals the composition map, by script, all green.
-- The heading-order crawl reports every page's headings equal to WordPress. One `h1` per page is the target: where WordPress prints several, the first stays the `h1` and the change is listed; where it prints none, adding one is new wording and waits for the owner.
+- The heading-order crawl reports every page's headings equal to WordPress, apart from the listed `h1` changes. One `h1` per page is the target: where WordPress prints several, the first stays the `h1` and the change is listed; where it prints none, adding one is new wording and waits for the owner.
 - Every template example is measured whole at the fixed widths.
 - The whole-page sweep has run over every path (the count of page loads compared is in `PROGRESS.md`), and its triage is empty or every row left is explained.
 
@@ -148,7 +148,7 @@ Done when
 **The behaviour checklist.** Write `verify/behaviour.md` from the theme's own block scripts and options, one line per behaviour a visitor can trigger, and automate as many lines as possible in a suite that runs in Chromium and WebKit at phone and desktop sizes. Rerun the whole suite after every release.
 
 Done when
-- The behaviour checklist is fully ticked, each line with the width and browser it was tested in (Chromium, real Safari, iOS Safari): menus, search, forms, sliders, accordions, filters, sticky navigation, modals, maps, reduced motion, keyboard focus.
+- The behaviour checklist is fully ticked, each line with the width and browser it was tested in (Chromium, real Safari, iOS Safari): menus, search, forms, sliders, accordions, filters, sticky navigation, modals, maps (once the map key allows the staging host; listed as waiting until then), reduced motion, keyboard focus.
 - Every open state is measured against WordPress at phone, tablet and desktop; hover, focus, Enter and Space, a slow drag on every slider and scrolling beside every overlay are compared on both sides (`verification.md`, "States the sweep cannot see").
 - No console errors on any page at any width (`scripts/console-check.mjs --all`; without the flag it loads every static page and one item of each collection). The page source shows exactly one external stylesheet and one external script of yours, plus declared dependencies.
 
@@ -163,14 +163,14 @@ On a site with no site plan, 301 redirects cannot be imported at all. Build and 
 Done when
 - The URL checker's fixture test fails as designed, then the real run against staging reports 0 failures (redirect rows excepted on a site with no plan, and listed as waiting).
 - Every legacy redirect rule has a tested outcome recorded.
-- Favicons, head tags, Open Graph tags on templates, structured data, sitemap membership and robots policy are in the published output, checked by fetching it. For the Open Graph image that means every item of every template compared with WordPress's picture, not one page read for the tag.
+- Favicons, head tags, Open Graph tags on templates, structured data, sitemap membership and robots policy are in the published output, checked by fetching it (on a site with no plan the sitemap controls are refused: sitemap membership, and the sitemap line of the SEO check, are listed as waiting for cutover). For the Open Graph image that means every item of every template compared with WordPress's picture, not one page read for the tag.
 
 ## Phase 7: verification
 
 The twelve checks are in `verification.md`. The agent performs the editor-acceptance steps through the Designer or Editor and records how; the owner repeats them at review.
 
 Done when
-- The sequence check, URL checker, link crawl (both passes), console check, body comparison, glued-words check and SEO check each report zero failures, with the output in `PROGRESS.md`.
+- The sequence check, URL checker, link crawl (both passes), console check, body comparison, glued-words check and SEO check each report zero failures, with the output in `PROGRESS.md`. The standing exceptions are listed as waiting, not hidden: on a site with no plan, redirect rows and sitemap membership; and any page where WordPress itself prints no `h1` or several.
 - A measurement report exists for every static page and template example at the fixed widths, with zero mismatches or every remaining difference in `verify/accepted-differences.md` with a reason.
 - The whole-page sweep (`scripts/page-sweep.mjs --all`) has compared every path at phone, tablet and desktop widths after the last release: its triage is empty, or every row left is in `verify/accepted-differences.md` with a reason. "Compared N of N page loads" is quoted in `PROGRESS.md`.
 - The behaviour checklist is ticked in real Safari and iOS Safari as well as Chromium, rerun in full after the last release.
@@ -194,7 +194,7 @@ Done when
 
 A long build can run in one session that is kept going until a completion condition is met, if these hold:
 
-- The condition names evidence: every "Done when" line shown true with output, the URL checker at zero failures, the whole-page sweep clean over every path, the behaviour checklist ticked, measurement reports present. It stops at the end of Phase 7.
+- The condition names evidence: every "Done when" line shown true with output, the URL checker at zero failures (redirect rows excepted on a site with no plan), the whole-page sweep clean over every path, the behaviour checklist ticked, measurement reports present. It stops at the end of Phase 7.
 - **When a prerequisite is missing, park it and keep going**, in this order: everything local first (Phase 0, inventories, reference measurements); then whatever the pre-flight showed the site accepts; then the offline halves of plan-dependent work (the redirect file, the search page layout). Keep one list of what is parked and what each item is waiting for, and put it at the top of every report.
 - **The owner is asked once, before the run**, for what SKILL.md's owner list holds. Nothing else is asked during the run: a choice that turns up on the way (a fault of the old site to copy or not, a default the owner may want changed) gets the default, goes on the waiting list, and is put to the owner at review. Defaults are applied and reported, not asked. A Designer-only step is done through the browser; if the browser is not signed in, the parked item is the sign-in, not the step.
 - After every context compaction, re-read `PLAN.md` and `PROGRESS.md` before doing anything else.

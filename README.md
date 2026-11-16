@@ -130,7 +130,7 @@ No browser check ever submits a form, so a test run cannot create a real lead; a
 <summary>Show them</summary>
 
 1. Webflow's breakpoints are rarely all the theme's. Read the theme's real screens and measure both sides of every one.
-2. Collection List settings, "current item" links and multi-image sources are partly Designer-only. Plan a short Designer pass at the end of each structure.
+2. "Current item" links and multi-image sources are Designer-only. Plan a short Designer pass at the end of each structure.
 3. Removing a Collection List's Empty State deletes the whole list, silently. Hide it instead.
 4. Removing a Collection List's Empty State removes the whole list, and the answer says only that an element was removed.
 5. A timed-out bulk create may still have created the items. Re-list and match on your own id before sending again.

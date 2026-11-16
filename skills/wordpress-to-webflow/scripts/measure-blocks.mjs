@@ -33,7 +33,9 @@
 //    button that had the wrong background.
 //  - Zero-size wrappers (<picture>, an inline link) are walked through: their children are visible.
 //  - Scrolling is instant: themes set scroll-behavior: smooth, and a smooth scroll is still moving when boxes are read.
-//  - Only the staging URL gets a cache-busting query. On the WordPress side a stray query parameter can change the
+//  - Only the staging URL gets a cache-busting query, and --no-bust leaves it off: use that for a page whose own
+//    scripts read the query string (a listing that counts every parameter as a filter).
+//    Only staging, because on the WordPress side a stray query parameter can change the
 //    page (a listing that reads every parameter as a filter).
 //  - Reduced motion is on, so sliders rest on their first slide.
 import fs from 'node:fs';
@@ -128,7 +130,7 @@ for (const spec of specs) {
     const ctx = await browser.newContext({ ...profile, reducedMotion: 'reduce' });
     await guard(ctx);
     const a = await measure(ctx, WP, spec.wp, false);
-    const b = await measure(ctx, WF, spec.wf, true);
+    const b = await measure(ctx, WF, spec.wf, !has('--no-bust'));
     await ctx.close();
     if (DUMP && a && b) fs.writeFileSync(verify('measure', `${spec.name}.${w}.dump.json`), JSON.stringify({ wp: a, wf: b }, null, 1));
     const rows = [];

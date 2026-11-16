@@ -195,7 +195,9 @@ def document_exists(u):
 def upload_dest(livep):
     if not livep or not livep.startswith(UPLOADS): return None, None
     key = unquote(livep.split('?')[0][len(UPLOADS):])
-    if key in media: return media[key][0]['destination'], 'old media URL → its migrated file'
+    if key in media:
+        m = media[key]; m = m[0] if isinstance(m, list) else m   # the manifest holds a list of uses, or one
+        return m['destination'], 'old media URL → its migrated file'
     base = re.sub(r'-(\d+x\d+|scaled)(?=\.[a-z0-9]+$)', '', key, flags=re.I)
     base = re.sub(r'-(\d+x\d+)(?=\.[a-z0-9]+$)', '', base, flags=re.I)
     if base in media: return media[base][0]['destination'], f'old media URL (size variant of {base}) → the migrated original'

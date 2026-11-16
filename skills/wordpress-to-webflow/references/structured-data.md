@@ -50,7 +50,7 @@ Least invasive first:
 
 Placeholders are HTML-escaped but not JSON-escaped: **a line break in a bound field makes that item's JSON invalid.** Check every item, and tell the owner which fields must stay on one line. HTML-escaping also means an `&` in a name is printed as `&amp;` inside the JSON: valid JSON, wrong text for a reader that does not decode it. List the items it affects.
 
-Keep the JSON-LD records in page and template head code, one per page type, written by one generator script. The site-wide head code, which other people's scripts share, is the last resort of step 3 above and only for a block that is the same on every page.
+Keep the JSON-LD records where steps 1 and 2 above put them (a static page's Schema markup field, a template's head code), one per page type, written by one generator script. The site-wide head code, which other people's scripts share, is the last resort of step 3 above and only for a block that is the same on every page.
 
 Script-built JSON-LD (for example an FAQ block assembled in the browser) is read by Google but not by crawlers that don't run JavaScript. Prefer server-rendered blocks.
 

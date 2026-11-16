@@ -128,7 +128,8 @@ async function compare() {
   const browser = await chromium.launch();
   const out = {};
   for (const o of origins) for (const path of PATHS) for (const vp of VIEWPORTS) {
-    const page = await browser.newPage({ viewport: vp });
+    const cx = await browser.newContext({ viewport: vp }); await guardPosts(cx);   // never post a form, on either origin
+    const page = await cx.newPage();
     const log = [];
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') log.push(`${m.type()}: ${m.text()}`.slice(0, 300)); });
     page.on('pageerror', (e) => log.push('pageerror: ' + String(e.message).slice(0, 300)));
@@ -136,7 +137,7 @@ async function compare() {
     await page.goto(o + path, { waitUntil: 'load', timeout: 60000 });
     await page.mouse.wheel(0, 1600); await page.waitForTimeout(2500);
     out[`${o}${path} @${vp.width}`] = { ...(await page.evaluate(probe, selectors)), console: log };
-    await page.close();
+    await cx.close();
   }
   await browser.close();
   fs.writeFileSync(verify('console-compare.json'), JSON.stringify(out, null, 2) + '\n');
