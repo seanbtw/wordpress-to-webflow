@@ -106,7 +106,7 @@ Most requests are a slice of the above. Go straight to the slice:
 - **"Is the rebuild the same as the old site?"** → `references/verification.md`.
 - **"Add schema markup"** (any Webflow site, migrated or not) → `references/structured-data.md`.
 - **"Can editors add new items without breaking things?"** → `references/verification.md`, "Test a new item the way an editor makes it".
-- **"Webflow refused / dropped / lost my change"** → `references/webflow-traps.md`.
+- **"Webflow refused / dropped / lost my change"** → `references/webflow-traps.md`. To report it to Webflow, see its last section, "Reporting a fault to Webflow".
 - **"We're ready to switch DNS"** → `references/cutover.md`.
 
 ## Scripts
@@ -134,4 +134,5 @@ Read `references/webflow-traps.md` before Phase 1. The short list:
 13. A block measured in part hides what is missing from the rest. Measure whole templates, and crawl every page's heading order early.
 14. A check that compared nothing reports no failures. Make every check print what it compared, and have a session that did not do the build check the result against pages saved from the live site (`references/verification.md`).
 15. The HTML builder damages text three ways: it drops a space beside an inline element (glued words), turns a button with inner spans into placeholder text, and leaves off any class with no style. Check for all three straight after the first page insert.
-16. An item's address is the one WordPress serves. A permalink plugin can set it for any post type, so read it from the served URL list, never from the post's own slug.
+16. Anything that will carry a CMS binding is made with the element builder. A binding on an element inserted with the HTML builder, inside a list item, is dropped or refused with the "component map" conflict. And never switch a Collection List between hand-picked and automatic: its sort stops saving.
+17. An item's address is the one WordPress serves. A permalink plugin can set it for any post type, so read it from the served URL list, never from the post's own slug.
