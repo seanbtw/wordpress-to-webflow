@@ -6,6 +6,7 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 - Measuring
 - The Phase 7 checks
 - Code parity: the check that finds what the others miss
+- A check that did not run looks like a pass
 - Test a new item the way an editor makes it
 - Noise to recognise
 - Browser testing gotchas
@@ -29,14 +30,14 @@ The aim: no difference a user would notice, no URL lost, no behaviour missing, a
 
 ## The Phase 7 checks
 
-1. **Structure**: component sequence per page equals the composition map, by script.
+1. **Structure**: component sequence per page equals the composition map, by script. The script must read the marker *this* build writes on each block (a data attribute, or the compiled class name). One written for another build's markers finds nothing and never truly runs; print how many pages and blocks it compared.
 2. **Measured layout**: every static page and template example measured whole against the local WordPress at 390, 768, 1200, 1440 and 1920 and both sides of each breakpoint, plus each fixed or sticky layout at a defined scroll position; the heading-order crawl over every path. **Triage by page height difference first** (lost or added content), then by the first mismatch on each page. Zero mismatches, or each one in the accepted-differences file.
-3. **Behaviour and accessibility**: the behaviour checklist, every line ticked with width and browser, including real Safari and iOS Safari. Menus, search, forms, sliders, accordions, filters, sticky elements, modals, maps, keyboard focus, reduced motion.
+3. **Behaviour and accessibility**: the behaviour checklist, every line ticked with width and browser, including real Safari and iOS Safari. Menus, search, forms, sliders, accordions, filters, sticky elements, modals, maps, keyboard focus, reduced motion. **Every script-driven element on the WordPress page must map to a hook on the new page**: list the theme's own markers (an Alpine `x-data`, a slider library's classes) per page and confirm each has its module hook in the published HTML. A block with no hook compiles to markup that looks right and does nothing (a page menu that should stick, a share bar, tabs, a header search form).
 4. **Console**: no errors on any page at any width (`scripts/console-check.mjs`).
 5. **Links and media**: crawl staging (`scripts/crawl-links.mjs`): zero broken internal links; zero references to the old host or to localhost in HTML, `srcset`, CSS backgrounds, embeds or JSON-LD; then crawl again with requests to the old host blocked and confirm nothing visible breaks.
 6. **URLs**: `scripts/check-urls.mjs` at zero failures.
-7. **Content**: automated body comparison at 100% (`scripts/compare-bodies.mjs`), `scripts/glued-words.mjs` over every page, plus side-by-side spot checks of a sample of each type.
-8. **SEO** (`scripts/seo-check.mjs`): exactly one `h1`; title and description equal the inventory; JSON-LD parses and validates; Open Graph tags present on templates; sitemap lists what it should and nothing else. **Alt text**: compare per page by placement in the served HTML, keyed by file (strip WordPress size suffixes, `-scaled` and Webflow's asset-id prefix), leaving out hidden helper images, and with WordPress's own faults in mind: an alt cut short at a double quote, and a theme that prints the attachment title when alt is empty.
+7. **Content**: automated body comparison at 100% (`scripts/compare-bodies.mjs`), `scripts/glued-words.mjs --rendered` over every page, plus side-by-side spot checks of a sample of each type. Any page whose markup an agent typed out by hand, not a compiler, gets a word-by-word comparison of its visible text with WordPress (same words, same order) before it is measured.
+8. **SEO** (`scripts/seo-check.mjs`): exactly one `h1`; title and description equal the inventory; JSON-LD parses and validates; the Open Graph image on **every** page and item is the picture WordPress prints there (none where WordPress prints none); sitemap lists what it should and nothing else. **Alt text**: compare per page by placement in the served HTML, keyed by file (strip WordPress size suffixes, `-scaled` and Webflow's asset-id prefix), leaving out hidden helper images, and with WordPress's own faults in mind: an alt cut short at a double quote, and a theme that prints the attachment title when alt is empty.
 9. **Performance**: Lighthouse mobile on the home page, a media-heavy item, an article and the heaviest listing. Fix layout shift from fonts.
 10. **Code parity**: see below.
 11. **Editor acceptance**: through the Designer or Editor, change a hero, replace a gallery image, reorder a curated list, publish a new article, with no code change. The agent does it and records how; the owner repeats it at review. Then run the new-item test below.
@@ -50,6 +51,14 @@ On the reference migration this found what page-by-page visual and SEO checks ha
 
 Also check what fires before consent. Tag manager containers often load lead-tracking scripts with no consent setting; the rebuild inherits that unless someone decides otherwise. Report it; it is the owner's call.
 
+## A check that did not run looks like a pass
+
+On the third build two checks reported nothing wrong because they compared nothing. The share picture on item pages had never been compared (the SEO check looked at titles and descriptions; code parity confirmed the tag existed on static pages), and the structure check had been written for an earlier build's markers. Both were found late, one of them by a second session.
+
+- **Every check prints what it compared**: how many pages, how many values. Zero compared is a failure, not a pass.
+- **Name the evidence for each "Done when" line by what was compared with what**, not by which script was run.
+- **Have a session that did not do the build check the result** before hand-off, against pages saved from the live site at the start: every sitemap address answers on staging, and title, description, `h1` and share picture match per page. It needs only `curl` and the saved pages, and it is not anchored on the build's own reports.
+
 ## Test a new item the way an editor makes it
 
 Imported items carry fields an editor will never fill: the WordPress id, a publish timestamp, a generated card excerpt. Create one new item by hand with only what an editor would enter (make it awkward: long title, no excerpt, no optional media), publish it, and look everywhere it should appear. On the reference migration this exposed:
@@ -58,7 +67,9 @@ Imported items carry fields an editor will never fill: the WordPress id, a publi
 - stored "related" lists never included it;
 - card text bound to an importer field was blank;
 - a template title bound to an optional SEO field published an empty `<title>`;
-- date ordering that relied on an importer timestamp put it in the wrong place.
+- date ordering that relied on an importer timestamp put it in the wrong place;
+- a card link bound to an importer-only address field was empty (let the script fall back to the collection's folder plus the slug);
+- the share picture was empty, because the field behind it was optional.
 
 The fixes generalise: key by link, not by importer id; compute related lists at view time from lists the template already holds; give card text a fallback (excerpt, else the first words of the body); make the fields a template cannot do without **required**; sort by day with Webflow's own order as the tie-break. Then confirm the new item is on top wherever "newest" is promised, that grids still hold their shape with one more item, and that curated lists are unaffected. Delete the test item and confirm it is gone from listings, related lists, the sitemap (after a full publish) and search.
 
@@ -70,6 +81,10 @@ Tell editors what is automatic and what is not: automatic lists pick new items u
 - The old site's fixed header covering click targets in tests.
 - Differences confined to a slider or a lazy image, with equal page heights, were always a slider mid-transition or media not yet loaded, on either side. Turn reduced motion on, force lazy images eager, and measure again before fixing anything.
 - Headings inside slider tracks differ between slider libraries (one hides off-screen slides from assistive technology, another does not). Leave slider tracks out of the heading crawl and cover sliders with the block measurement and the behaviour suite.
+- **`aria-hidden` sits on different elements on each side** (inactive slides, tab panels, hero slides). A text comparison that drops everything `aria-hidden` counts one slide on one side and every slide on the other, and one that keeps everything counts decoration. Drop only `aria-hidden` elements that hold no letters or digits, on both sides.
+- Two slider libraries park their off-screen slides on opposite sides of the track (one wraps them to the left with negative x, the other keeps them to the right, clipped). Boxes differ, the visible slide does not: measure the visible slide.
+- A listing that counts its active filters from every query parameter counts a cache-buster too ("All filters (1)"). The theme does the same; see "Cache-bust the Webflow side only".
+- Links that sit side by side in the new markup with no whitespace between them (navigation, footer) read as one word in the raw HTML though they render apart. `scripts/glued-words.mjs --rendered` compares rendered text and does not trip on them (the raw mode flagged 171 pages for this alone). A map widget's own buttons can still read as one word there; leave them out with `checks.glued.skipWithin`.
 - Staging and live HTML differ in compiled CSS names and Webflow attributes; strip the Webflow runtime tags and `data-wf-*` before comparing bodies.
 - Map errors on staging when the key is restricted to the live domain: environment, not a regression.
 

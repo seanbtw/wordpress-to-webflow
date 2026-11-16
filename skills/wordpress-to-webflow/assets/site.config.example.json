@@ -90,6 +90,7 @@
     "blockPostRes": ["forms\\.example\\.net"],
     "seo": {
       "skipTitleFor": ["/search"],
+      "skipOgImageFor": ["^/search$"],
       "jsonldExpect": [
         { "pathRe": ".", "type": "Organization", "count": 1 },
         { "pathRe": "^/blog/", "type": "Article" }
@@ -110,6 +111,10 @@
       "widths": [390, 479, 480, 767, 768, 991, 992, 1199, 1200, 1440, 1920],
       "phoneBelow": 768,
       "oneItemSelector": "a[class*='btn-'], [data-wf--button--variant]",
+      "skipWithin": ".sr-only"
+    },
+    "glued": {
+      "within": "main",
       "skipWithin": ".sr-only"
     },
     "headings": {

@@ -5,7 +5,7 @@ description: Rebuild a WordPress site in Webflow so it looks and behaves the sam
 
 # WordPress to Webflow
 
-A method for rebuilding a WordPress site in Webflow, written from a full migration (about 500 CMS items, 30 pages, 24 theme blocks), three follow-up schema jobs, and a second site on the same theme (about 370 items, 37 pages) built with this kit in one overnight run. It exists because the obvious way fails: rebuilding pages by eye from the live site gets the colours right and nearly everything else subtly wrong (breakpoints, spacing tiers, which element carries which rule, behaviour, URLs). The method below replaces looking with measuring.
+A method for rebuilding a WordPress site in Webflow, written from a full migration (about 500 CMS items, 30 pages, 24 theme blocks), three follow-up schema jobs, a second site on the same theme (about 370 items, 37 pages) built with this kit in one overnight run, and a third (about 200 items, 38 pages) built unattended in about six and a half hours. It exists because the obvious way fails: rebuilding pages by eye from the live site gets the colours right and nearly everything else subtly wrong (breakpoints, spacing tiers, which element carries which rule, behaviour, URLs). The method below replaces looking with measuring.
 
 ## The method in five sentences
 
@@ -95,7 +95,7 @@ The kit from the first build saves most of the early work (Phase 0 took 25 minut
 1. **Diff the two theme folders** (leaving out vendor, build output and `node_modules`) and read every file that differs before reusing a component design.
 2. **Diff the compiled rules for buttons, tags and type** between the two themes' built CSS. Differences in shared partials (a new margin on a button label, one more colour variant, another line height) do not show up as a differing template.
 3. **Copy the class list from this site's compiled CSS**, not from the last site's Webflow styles. Type scales, weights and letter-spacing are per site even when the block list is identical.
-4. **Before running any copied script, grep it for the previous project's folder path and domain.** Output paths must come from the config or be relative to the project; a copied script that still points at the last project writes into it without complaint.
+4. **Before running any copied script, grep it for the previous project's folder path, domain, local port and Webflow ids** (site id, page ids, collection ids). Output paths must come from the config or be relative to the project; a copied script that still points at the last project writes into it without complaint, and one that still holds the last site's id writes to that site. On the third build several copied scripts still carried the first site's id. Move one-off scripts out of the kit before copying it, and make the rest read every host and id from `site.config.json`.
 5. Record what the second build teaches in its own `LEARNINGS.md` under the same headings as the first, so the differences are easy to read side by side.
 
 ## When the request is only one part
@@ -111,7 +111,7 @@ Most requests are a slice of the above. Go straight to the slice:
 
 ## Scripts
 
-`scripts/README.md` lists each script, when to run it and what it writes. They read `site.config.json` (`--config`, `SITE_CONFIG`, or the current folder) and take the Webflow token only from the `WEBFLOW_TOKEN` environment variable. Most checks start from `scripts/staging-paths.mjs`, which lists every path the new site serves; rerun it when pages or items are added. Browser checks block common trackers and form submissions by default. Prove a checker before trusting it: a fixture with one known failure must fail. Three scripts are for the build itself, not only the end: `archive-check.py` (is the unpacked backup complete), `measure-blocks.mjs` (is this block the same as the theme's, by measured values) and `heading-sequence.mjs` (does every page have the sections the old one has).
+`scripts/README.md` lists each script, when to run it and what it writes. They read `site.config.json` (`--config`, `SITE_CONFIG`, or the current folder) and take the Webflow token only from the `WEBFLOW_TOKEN` environment variable. Most checks start from `scripts/staging-paths.mjs`, which lists every path the new site serves; rerun it when pages or items are added. Browser checks block common trackers and form submissions by default. Prove a checker before trusting it: a fixture with one known failure must fail. Run `glued-words.mjs --rendered` straight after the first page insert, not only in Phase 7. Three scripts are for the build itself, not only the end: `archive-check.py` (is the unpacked backup complete), `measure-blocks.mjs` (is this block the same as the theme's, by measured values) and `heading-sequence.mjs` (does every page have the sections the old one has).
 
 The kit covers redirects and checking. It does **not** ship the parts that depend on the theme and the content model; write those per site, driven by the same config: the inventory generator, the importer and body converter, the media uploader, the block compiler (for a utility-class theme; see `references/phases.md`, Phase 3), the composition map and its sequence check, the reference-measurement script, the behaviour suite, the JSON-LD generator, and the bundle build. `references/phases.md` says what each must do.
 
@@ -132,3 +132,6 @@ Read `references/webflow-traps.md` before Phase 1. The short list:
 11. The API reports success for writes it did not store (classes without a style, some bindings, `unset` values, shorthand grid properties). Read back, then measure.
 12. A site with no site plan builds and publishes to staging, but refuses 301 redirects and sitemap controls and shows only sample search results. Those checks move to cutover.
 13. A block measured in part hides what is missing from the rest. Measure whole templates, and crawl every page's heading order early.
+14. A check that compared nothing reports no failures. Make every check print what it compared, and have a session that did not do the build check the result against pages saved from the live site (`references/verification.md`).
+15. The HTML builder damages text three ways: it drops a space beside an inline element (glued words), turns a button with inner spans into placeholder text, and leaves off any class with no style. Check for all three straight after the first page insert.
+16. An item's address is the one WordPress serves. A permalink plugin can set it for any post type, so read it from the served URL list, never from the post's own slug.

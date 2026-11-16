@@ -14,7 +14,7 @@
 
 A [Claude skill](https://docs.claude.com/en/docs/claude-code/skills) for rebuilding a WordPress site in Webflow so that it looks and behaves the same, keeps every URL that matters, and stays editable by the site's own team.
 
-It was written from one full migration (about 500 CMS items, 30 pages and 24 theme blocks), three follow-up structured-data jobs, and a second site on the same theme (about 370 items, 37 pages) built in one overnight run. It holds the method, a gate for every phase, the Webflow limits met along the way with their workarounds, and the scripts that did the checking.
+It was written from one full migration (about 500 CMS items, 30 pages and 24 theme blocks), three follow-up structured-data jobs, a second site on the same theme (about 370 items, 37 pages) built in one overnight run, and a third (about 200 items, 38 pages) built unattended in about six and a half hours. It holds the method, a gate for every phase, the Webflow limits met along the way with their workarounds, and the scripts that did the checking.
 
 **Contents:** [Why](#why-it-exists) · [What you can ask](#what-you-can-ask) · [The method](#the-method) · [Phases](#ten-phases-each-with-a-gate) · [What is inside](#what-is-inside) · [Scripts](#the-scripts) · [Traps](#the-traps-that-cost-the-most-time) · [Install](#install) · [Limits](#honest-limits)
 
@@ -111,7 +111,7 @@ All of them read one `site.config.json` (start from [`site.config.example.json`]
 | What goes in Webflow's redirect import? | `build-redirects.py` |
 | Does every old URL land in the right place, in one hop? | `check-urls.mjs` |
 | Any broken links, or leftovers pointing at the old host? | `crawl-links.mjs` |
-| One `h1`, the right title and description, valid JSON-LD? | `seo-check.mjs` |
+| One `h1`, the right title, description and share picture, valid JSON-LD? | `seo-check.mjs` |
 | Any console errors, at any width? | `console-check.mjs` |
 | What scripts, tags and metas did the old site print that the new one does not? | `code-parity.py`, `code-parity-report.py` |
 | Does every body read the same? Did two words fuse? | `compare-bodies.mjs`, `glued-words.mjs` |
@@ -187,8 +187,8 @@ cd wordpress-to-webflow/skills/wordpress-to-webflow/scripts && npm install && np
 
 ## Honest limits
 
-- **It has been through two migrations, both of sites on the same theme.** The second build ran its own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures, not yet end to end against a real site.
-- **Webflow moves.** The limits were observed in November 2026 on a Premium site plan and on a site with no plan; a few changed within a day, and a few differed between the two builds. Re-test one with a throwaway write before leaning on it.
+- **It has been through three migrations, all of sites on the same theme.** The second and third builds ran their own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures; two of them (`seo-check.mjs`, `glued-words.mjs`) have also been run against a real staging site, the rest not yet.
+- **Webflow moves.** The limits were observed in November 2026 on a Premium site plan and on sites with no plan; a few changed within a day, and a few differed from one build to the next. Re-test one with a throwaway write before leaning on it.
 - **It does not ship an importer, an inventory generator, a block compiler or a behaviour test suite.** Those depend on each site's theme and content model. The skill says what each must do.
 - **It never writes copy.** Every word on the rebuilt site, and every string in the structured data, comes from the old site or a public record.
 - **Cutover is done with the site's owner present.** The skill will not move DNS or publish to a live domain on its own.

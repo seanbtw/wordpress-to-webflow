@@ -1,6 +1,6 @@
 # Phases and their gates
 
-Each phase ends with a "Done when" list. Print the list with the evidence beside each line and append it to `PROGRESS.md` before moving on. Rough effort on a 500-item, 30-page site with 24 theme blocks: about three days of continuous agent time for phases 0 to 7, most of it in Phase 2 (import and media) and Phases 3 and 4 (components and pages). A second site on the same theme (370 items, 37 pages) took one overnight run of about eight hours with the kit and a block compiler (Phase 3).
+Each phase ends with a "Done when" list. Print the list with the evidence beside each line and append it to `PROGRESS.md` before moving on. Rough effort on a 500-item, 30-page site with 24 theme blocks: about three days of continuous agent time for phases 0 to 7, most of it in Phase 2 (import and media) and Phases 3 and 4 (components and pages). A second site on the same theme (370 items, 37 pages) took one overnight run of about eight hours with the kit and a block compiler (Phase 3). A third (about 200 items, 38 pages) took about six and a half hours, unattended.
 
 ## Contents
 - Decisions to settle in PLAN.md
@@ -99,7 +99,12 @@ Done when
 - A transform that only applies from a breakpoint up must not be folded into the base class: compose the translate parts per breakpoint, and flag any base `transform` that came from a breakpoint class.
 - Layout that the utility classes do not show: WordPress core block CSS (columns), block-scoped theme rules, and padding a script adds to `main`. Compile all three.
 - Theme buttons and spacers should compile to the Phase 1 components, not to inline markup: compound rules (an icon circle on a button with an icon) are lost otherwise.
-- Empty paragraphs are dropped by a naive compile but hold a margin on WordPress; measure and carry the gap.
+- Empty paragraphs are dropped by a naive compile but hold a margin on WordPress; measure and carry the gap (and see `import.md` for the no-break-space case).
+- A block compiled on its own loses rules scoped to an ancestor (a width that differs inside the page container). Compile each block in its real page context (`wordpress-side.md`).
+- Scan the compiled CSS for `unset` and `initial` before every insert; it is the fault that returns most often.
+- A `<button>` with child spans, and a space at the edge of a text node, are both mangled by the HTML builder (`webflow-traps.md`, "Building elements"): compile the first to a div with a button role, and mend the second after the insert.
+- A carousel captured from the rendered page compiles to a still (absolutely placed slides, fixed heights from the capture width) unless its track gets the script hook. After each page insert, grep the published HTML for the slider library's own class names on elements with no hook.
+- A compiler that names classes by their style signature hands back the first prefix's names when a block is recompiled under a new prefix. Give it an option to start a prefix afresh, used only when the old names were never created in Webflow.
 - Give each page its own class namespace, numbered in document order. The HTML builder reuses an existing style with the same class name and ignores the new CSS for it; when a page is patched rather than re-inserted, push changed rules as style updates.
 - The traps in `webflow-traps.md`, "Building elements".
 
@@ -145,7 +150,7 @@ On a site with no site plan, 301 redirects cannot be imported at all. Build and 
 Done when
 - The URL checker's fixture test fails as designed, then the real run against staging reports 0 failures (redirect rows excepted on a site with no plan, and listed as waiting).
 - Every legacy redirect rule has a tested outcome recorded.
-- Favicons, head tags, Open Graph tags on templates, structured data, sitemap membership and robots policy are in the published output, checked by fetching it.
+- Favicons, head tags, Open Graph tags on templates, structured data, sitemap membership and robots policy are in the published output, checked by fetching it. For the Open Graph image that means every item of every template compared with WordPress's picture, not one page read for the tag.
 
 ## Phase 7: verification
 
@@ -180,3 +185,6 @@ A long build can run in one session that is kept going until a completion condit
 - A step that needs the owner stays open until they answer; retrying it is not progress. Work on everything else meanwhile.
 - Never widen scope to pass: no deleting checks, no marking a difference accepted without a reason in an `accepted-differences.md` file, and accepted differences that lose content or behaviour need the owner's yes.
 - If two agents work in the same Webflow workspace through the same account, keep their structural component work from overlapping.
+- **Idle is not stalled.** A build waiting on its own background agents looks idle from outside; a watchdog should read the progress file and the list of running agents before nudging it.
+- **Log to absolute paths.** A shell script that changes folder part-way and then logs to a relative path skips every later step without a word (the shell does not run a command whose redirect fails).
+- **End with an outside check** by a session that did not do the build (`verification.md`, "A check that did not run looks like a pass").
