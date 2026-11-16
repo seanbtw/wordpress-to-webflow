@@ -44,7 +44,12 @@ if (limit) paths = paths.slice(0, limit);
 const bare = (p) => (p.split('?')[0].replace(/\/+$/, '') || '/');
 const wpPathFor = {};
 const urlsFile = inventory('urls.csv');
-if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) if (r.expected_path && r.path) wpPathFor[bare(r.expected_path)] ??= r.path;
+// Rows whose expected path carries a query are left out (an archive folded into a filtered listing would otherwise claim
+// the listing's own path), and a row whose WordPress path is the same page wins over an earlier row.
+if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) {
+  if (!r.expected_path || !r.path || r.expected_path.includes('?')) continue;
+  const k = bare(r.expected_path); if (bare(r.path) === k || !(k in wpPathFor)) wpPathFor[k] = r.path;
+}
 const wpPath = (p) => wpPathFor[bare(p)] || (p === '/' ? '/' : p.replace(/\/+$/, '') + '/');
 
 const browser = await chromium.launch();
@@ -53,7 +58,7 @@ async function headings(url) {
   await guard(ctx);
   const page = await ctx.newPage();
   let status = 0;
-  try { const resp = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }); status = resp ? resp.status() : 0; } catch { /* a slow page is still read below */ }
+  try { const resp = await page.goto(url, { waitUntil: 'load', timeout: 45000 }); status = resp ? resp.status() : 0; await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {}); } catch { /* a slow page is still read below */ }
   await page.waitForTimeout(WAIT);
   const out = await page.evaluate(({ SKIP, SR }) => {
     const text = (e) => e.textContent.replace(/\s+/g, ' ').replace(/ /g, ' ').trim();

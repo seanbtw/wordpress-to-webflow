@@ -188,7 +188,7 @@ cd wordpress-to-webflow/skills/wordpress-to-webflow/scripts && npm install && np
 
 ## Honest limits
 
-- **It has been through three migrations, all of sites on the same theme.** The second and third builds ran their own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures; five of them (`seo-check.mjs`, `glued-words.mjs`, `page-sweep.mjs`, `console-check.mjs`, `compare-bodies.mjs`) have also been run against a real staging site, the first two over every page and the others on sample pages. The rest not yet.
+- **It has been through three migrations, all of sites on the same theme.** The second and third builds ran their own copies of the first build's scripts. The generalised scripts here have been exercised against test fixtures; five of them (`seo-check.mjs`, `glued-words.mjs`, `page-sweep.mjs`, `console-check.mjs`, `compare-bodies.mjs`) have also been run against a real staging site: the first three over every page, the other two on sample pages. The rest not yet.
 - **Webflow moves.** The limits were observed in November 2026 on a Premium site plan and on sites with no plan; a few changed within a day, and a few differed from one build to the next. Re-test one with a throwaway write before leaning on it.
 - **It does not ship an importer, an inventory generator, a block compiler or a behaviour test suite.** Those depend on each site's theme and content model. The skill says what each must do.
 - **It never writes copy.** Every word on the rebuilt site, and every string in the structured data, comes from the old site or a public record.

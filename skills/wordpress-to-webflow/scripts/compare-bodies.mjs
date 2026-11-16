@@ -74,7 +74,11 @@ const [type, ...slugs] = positionals(['--wp-selector']);
 // staging path -> WordPress path, for items WordPress serves at a custom address
 const wpPathFor = {};
 const urlsFile = opt('paths.inventoryDir', null) ? inventory('urls.csv') : null;
-if (urlsFile && fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) if (r.expected_path && r.path) wpPathFor[r.expected_path.split('?')[0].replace(/\/+$/, '') || '/'] ??= r.path;
+const bare = (p) => (p.split('?')[0].replace(/\/+$/, '') || '/');
+if (urlsFile && fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) {   // rows with a query in the expected path are left out; the same page wins
+  if (!r.expected_path || !r.path || r.expected_path.includes('?')) continue;
+  const k = bare(r.expected_path); if (bare(r.path) === k || !(k in wpPathFor)) wpPathFor[k] = r.path;
+}
 const wpPath = (t, s) => wpPathFor[`/${t}/${s}`] || `/${t}/${s}/`;
 if (!type || !slugs.length) { console.error('compare-bodies: give a post type and at least one slug, for example: node compare-bodies.mjs blog my-first-post'); process.exit(2); }
 const WPSEL = arg('--wp-selector', null) || opt('checks.bodies.wpSelectorByType', {})[type] || need('checks.bodies.wpSelector');
@@ -89,7 +93,8 @@ const page = await ctx.newPage();
 const res = [];
 for (const slug of slugs) {
   const get = async (url, sel, side) => {
-    const r = await page.goto(url, { waitUntil: 'networkidle' });
+    const r = await page.goto(url, { waitUntil: 'load' });
+    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});   // a page with a live map never goes idle
     await page.evaluate(() => document.querySelector('.w-webflow-badge')?.remove());
     const html = await page.$eval(sel, (e) => e.innerHTML).catch(() => null);
     const el = await page.$(sel);

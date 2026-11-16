@@ -22,9 +22,11 @@
 //           checks.sweep.parts (optional)                 selector of the wrapper whose direct children are the
 //                                                         parts, default "main > article, main" (first match)
 //           checks.sweep.footer (optional)                default "footer"
-//           checks.sweep.hide (optional)                  selector of bars that float over the page; any match
-//                                                         that is fixed or sticky is hidden while values are read.
-//                                                         Default "header, nav, [role=banner]"
+//           checks.sweep.hide (optional)                  selector of sticky bars that float over the page; any
+//                                                         match that is fixed or sticky is hidden while values are
+//                                                         read. Default "header, nav, [role=banner]". Anything
+//                                                         fixed to the viewport is looked through without being
+//                                                         named here.
 //           checks.sweep.minPct (optional)                share of a part's pixels that must differ before the
 //                                                         part is listed, default 0.5
 // Outputs:  <verifyDir>/sweep/<page>.<width>.json   every part of that page at that width, with regions and values
@@ -60,11 +62,24 @@ const differs = (p) => p.issue || Math.abs(p.dh || 0) > 2 || (p.diffPct || 0) > 
 function triage() {
   const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.json'));
   const causes = new Map(); const shape = []; let parts = 0, bad = 0;
+  // every differing part gets one kind, from what was measured, so the account of a run starts from numbers
+  const KIND = { shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
+  const kinds = new Map(Object.keys(KIND).map((k) => [k, { n: 0, pages: new Set() }]));
+  const stem = (f) => { let b = String(f || ''); try { b = decodeURIComponent(b); } catch {} return b.replace(/^[0-9a-f]{24}_/, '').replace(/\.[a-z0-9]+$/i, '').replace(/-scaled$/, '').replace(/-\d+x\d+$/, '').replace(/-\d+$/, '').toLowerCase(); };
+  const kindOf = (p) => {
+    if (p.issue || Math.abs(p.dh || 0) > 2) return 'shape';
+    const regs = p.regions || [];
+    if (regs.some((g) => ['el', 'parent'].some((l) => Object.keys(g.diff?.[l] || {}).some((k) => !/^box\.|^text$|^missing$|^tag$/.test(k))))) return 'value';   // a different tag with the same computed values is markup, not a visible difference
+    const pic = regs.filter((g) => /^(img|picture|video|canvas|svg)$/.test(g.wp?.el?.tag || '') || /^(img|picture|video|canvas|svg)$/.test(g.wf?.el?.tag || '') || (g.wp?.el?.bgimg && g.wp.el.bgimg !== 'none'));
+    if (pic.some((g) => g.wp?.el?.src && g.wf?.el?.src && stem(g.wp.el.src) !== stem(g.wf.el.src))) return 'picture';
+    return pic.length ? 'pixels' : 'text';
+  };
   const name = (side) => (side ? `${side.tag}.${(side.cls || '').split(' ').filter((c) => c && !/^w-/.test(c)).slice(0, 2).join('.')}` : '?');
   for (const f of files) {
     const r = JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')); if (!r.parts) continue;
     for (const p of r.parts) {
       parts++; if (!differs(p)) continue; bad++;
+      { const k = kinds.get(kindOf(p)); k.n++; k.pages.add(r.path); }
       if (p.issue || Math.abs(p.dh || 0) > 2) shape.push({ page: r.path, w: r.w, i: p.i, sig: p.wp?.sig || p.wf?.sig, issue: p.issue, wpH: p.wp?.h, wfH: p.wf?.h, dh: p.dh, img: p.img });
       for (const g of p.regions || []) for (const lvl of ['el', 'parent']) {
         const d = g.diff[lvl]; if (!d) continue;
@@ -80,7 +95,10 @@ function triage() {
   }
   const list = [...causes.values()].sort((a, b) => b.pages.size - a.pages.size || b.n - a.n);
   const cell = (s) => String(s ?? '').replace(/\|/g, '/');
+  const kindRows = [...kinds.entries()].sort((a, b) => b[1].n - a[1].n);
   const md = ['# Sweep triage', '', `${files.length} page × width results · ${parts} parts · ${bad} differ (pixels > ${MIN} %, or height by more than 2 px, or missing)`, '',
+    '## Differing parts by kind', '', 'Sorted from the measurements, to start the account of the run. Each kind still has to be explained in accepted-differences.md; "no value differs" is a description, not a verdict.', '',
+    '| Kind | Parts | Pages |', '|---|---:|---:|', ...kindRows.map(([k, v]) => `| ${KIND[k]} | ${v.n} | ${v.pages.size} |`), '',
     '## Causes, by number of pages', '', 'Staging element (WordPress element) and the property that differs, WordPress → staging. One fix per row.', '',
     '| Pages | Hits | Widths | Staging element (WordPress element) | Property: WordPress → staging | Example |', '|---:|---:|---|---|---|---|',
     ...list.slice(0, 300).map((c) => { const [el, prop, val] = c.k.split(' | '); return `| ${c.pages.size} | ${c.n} | ${[...c.widths].sort((a, b) => a - b).join('/')} | ${cell(el)} (${cell(c.wpEl)}) | ${cell(prop)}: ${cell(val)} | ${c.sample.page} @${c.sample.w} "${cell((c.sample.text || '').slice(0, 24))}" ${c.sample.img || ''} |`; }),
@@ -111,7 +129,12 @@ if (!pages.length) { console.error('page-sweep: give at least one path, or --all
 const bare = (p) => (p.split('?')[0].replace(/\/+$/, '') || '/');
 const wpPathFor = {};
 const urlsFile = inventory('urls.csv');
-if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) if (r.expected_path && r.path) wpPathFor[bare(r.expected_path)] ??= r.path;
+// Rows whose expected path carries a query are left out (an archive folded into a filtered listing would otherwise claim
+// the listing's own path), and a row whose WordPress path is the same page wins over an earlier row.
+if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) {
+  if (!r.expected_path || !r.path || r.expected_path.includes('?')) continue;
+  const k = bare(r.expected_path); if (bare(r.path) === k || !(k in wpPathFor)) wpPathFor[k] = r.path;
+}
 const wpPath = (p) => wpPathFor[bare(p)] || (p === '/' ? '/' : p.replace(/\/+$/, '') + '/');
 
 const { chromium, devices } = await import('playwright');
@@ -148,11 +171,14 @@ const PROBE = async ({ pts, hideSel }) => {   // measured values of the element 
       box: [Math.round(r.left + scrollX), Math.round(r.top + scrollY), Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10],
       font: c.fontFamily.split(',')[0].replace(/"/g, ''), size: c.fontSize, weight: c.fontWeight, lh: c.lineHeight, ls: c.letterSpacing, tt: c.textTransform, color: c.color, bg: c.backgroundColor, bgimg: c.backgroundImage.slice(0, 80),
       pad: c.padding, margin: c.margin, border: bw.every((w) => parseFloat(w) === 0) ? 'none' : [...bw, c.borderTopStyle, c.borderTopColor].join(' '),   // a border with no width is no border, whatever its style
-      radius: c.borderRadius, op: c.opacity, gap: c.gap, display: c.display, ta: c.textAlign, deco: c.textDecorationLine, shadow: c.boxShadow, obj: c.objectFit }; };
+      radius: c.borderRadius, op: c.opacity, gap: c.gap, display: c.display, ta: c.textAlign, deco: c.textDecorationLine, shadow: c.boxShadow, obj: c.objectFit,
+      src: (el.currentSrc || el.getAttribute?.('src') || '').split('?')[0].split('/').pop().slice(0, 120) }; };   // src is kept for sorting parts into kinds, not compared as a value
+  // anything fixed to the viewport floats over the page: look through it, whatever element it is
+  const floats = (el) => { for (let n = el; n && n !== document.documentElement; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return true; return false; };
   const out = [];
   for (const [x, y] of pts) {
     window.scrollTo(0, Math.max(0, y - 300)); await new Promise((r) => setTimeout(r, 30));
-    hide.forEach((e) => (e.style.visibility = 'hidden')); const e = document.elementFromPoint(x - scrollX, y - scrollY); hide.forEach((h) => (h.style.visibility = ''));
+    hide.forEach((e) => (e.style.visibility = 'hidden')); const e = document.elementsFromPoint(x - scrollX, y - scrollY).find((n) => !floats(n)) || null; hide.forEach((h) => (h.style.visibility = ''));
     out.push(e ? { el: one(e), parent: e.parentElement ? one(e.parentElement) : null } : null);
   }
   return out;
@@ -161,7 +187,8 @@ const PROBE = async ({ pts, hideSel }) => {   // measured values of the element 
 async function grab(ctx, url) {
   const p = await ctx.newPage(); const errors = []; let status = 0;
   p.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
-  try { const r = await p.goto(url, { waitUntil: 'networkidle', timeout: 90000 }); status = r ? r.status() : 0; } catch { /* measure what loaded */ }
+  try { const r = await p.goto(url, { waitUntil: 'load', timeout: 90000 }); status = r ? r.status() : 0; } catch { /* measure what loaded */ }
+  await p.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});   // a page with a live map never goes idle; the status is kept from the load
   await p.evaluate(PREP); const parts = await p.evaluate(PARTS, SEL);
   const shot = PNG.sync.read(await p.screenshot({ fullPage: true, animations: 'disabled' }));
   return { p, parts, shot, errors, status, docH: await p.evaluate(() => document.documentElement.scrollHeight) };
