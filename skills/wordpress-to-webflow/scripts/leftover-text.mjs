@@ -19,6 +19,9 @@
 // What it looks for:
 //   - placeholders the HTML builder leaves where it could not keep an element: ##INLINE0##, ##BLOCK3## and the like
 //   - Webflow's default text, anywhere: the Text Block sentence, the Rich Text sample heading, Lorem ipsum
+//   - Webflow's sample search results (links to /sample-result), printed into a Search Results element on a site
+//     with no search index. Expected while the site has no plan: record it as waiting for the plan, and run this
+//     again after cutover and "Index now", when it must find none
 //   - Webflow's default labels as the whole text of an element: "Heading", "Button Text", "Text Link", "Link"
 import fs from 'node:fs';
 import { opt, origin, arg, has, positionals, verify, readJson } from './site.mjs';
@@ -44,7 +47,12 @@ function scan(html) {
   const found = [];
   const near = (i, n) => decode(body.slice(Math.max(0, i - 60), i + n + 60).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
   for (const m of body.matchAll(PLACEHOLDER)) found.push({ what: m[0], kind: 'placeholder', near: near(m.index, m[0].length) });
-  const text = decode(body.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
+  // Webflow prints sample results into a Search Results element when the site has no search index (no hosting plan
+  // yet). A script that fills the list afterwards hides them from a visitor's eye, not from the page's HTML.
+  const samples = (body.match(/href="\/sample-result"/g) || []).length;
+  if (samples) found.push({ what: `${samples} sample search results`, kind: 'Webflow sample search result', near: 'links to /sample-result inside the Search Results element' });
+  // tags out, and the spaces a tag-per-word markup leaves before punctuation closed up
+  const text = decode(body.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').replace(/ ([,.;:!?…])/g, '$1');
   for (const s of ANYWHERE) { let i = -1; while ((i = text.indexOf(s, i + 1)) >= 0) found.push({ what: s, kind: 'default text', near: text.slice(Math.max(0, i - 60), i + s.length + 60).trim() }); }
   // an element whose whole text is a default label: <h2 class="…">Heading</h2>, <a …>Text Link</a>
   for (const m of body.matchAll(/<(h[1-6]|a|button|div|p|span)\b([^>]*)>\s*([^<]{1,20}?)\s*<\/\1>/gi)) {
