@@ -13,7 +13,9 @@
   "wordpress": {
     "localOrigin": "http://localhost:8080",
     "uploadsPath": "/wp-content/uploads/",
-    "_localOrigin": "A local copy of the WordPress site, used as the reference by the text checks. Optional for the URL and link checks."
+    "_uploadsPath": "The URL path of uploads, as the scripts read it. A disk folder goes in uploadsDir, never here.",
+    "uploadsDir": "docker/html/wp-content/uploads",
+    "_localOrigin": "A local copy of the WordPress site, used as the reference by the text checks. Optional for the URL and link checks. Pick a port no other project holds (docker ps) and bind 127.0.0.1 only."
   },
 
   "webflow": {

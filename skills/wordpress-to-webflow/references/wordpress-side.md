@@ -2,12 +2,13 @@
 
 ## Run the backup locally
 
+0. **Check free disk space first.** A site needs about two and a half times its zip (the zip, the unpacked working copy, the database volume and the images). Earlier sites' copies add up: a fourth site would not have fitted beside three.
 1. **Check the archive** (`scripts/archive-check.py`). Compare the extracted folder with the zip's own manifest (every file at its path with its size), then test integrity. Use Python's `zipfile` with Unicode normalisation; `unzip -l` mangles names containing en dashes. **Look for names that differ only in letter case.** One uploads folder held 68 such pairs, every pair two different files; a case-insensitive disk (the macOS default) keeps one of each and reports nothing. Extract both copies of each pair to a side folder, check with an exact-case lookup, and point the media build and the media check at the side folder for those paths.
 2. **Work on a copy.** Never mount the original extraction; copy it to an expendable folder.
-3. **Docker**: the WordPress image pinned to the version in the backup's `wp-includes/version.php`, a matching database image, and a WP-CLI container. Bind to `127.0.0.1` only.
+3. **Docker**: the WordPress image pinned to the version in the backup's `wp-includes/version.php`, a matching database image, and a WP-CLI container. Bind to `127.0.0.1` only, on a port no other project holds (`docker ps`): a check pointed at another project's port measures the wrong site without complaint. **Pin PHP too**, to at least the highest version any plugin or the theme needs: read the `Requires PHP:` headers and every `vendor/composer/platform_check.php`. One plugin's check needed 8.3 where the earlier sites ran 8.2, and WP-CLI died on its first command.
 4. **Do not use the archive's `wp-config.php`**: it holds live credentials and host-specific constants. Let the image generate one, set the same table prefix the dump uses, and add `DISABLE_WP_CRON` and a local environment type.
 5. **Remove host-only code before first boot**: must-use plugins from the host and any `object-cache.php` or `advanced-cache.php` drop-in.
-6. **Import the database, then search-replace** the live origin with the local one across all tables, skipping `guid`.
+6. **Import the database, then search-replace** the live origin with the local one across all tables, skipping `guid`. **Replace every form of the origin, then count what is left**: plain, `http://`, the bare domain, and the JSON-escaped form (`https:\/\/example.com`) in which SEO and field plugins store image details. The plain replace skips the escaped form, so social-share image addresses on some pages go on pointing at the live site, and `seo.csv` then records live addresses as the reference. All three earlier local copies had this, unnoticed. Grep a sample of rendered pages for the live host before going on: 0 outside mail and security logs.
 7. **Deactivate plugins that phone home or get in the way** (caching, security, auto-updaters, mail). Before deactivating anything else, grep the theme for what it depends on. Keep a plugin active if the theme renders through it (form shortcodes, custom fields, SEO, search), and block its outbound tracking instead.
 8. **Create a local admin user**; keep its password in a gitignored file.
 9. Check whether the theme reads an `.env` file or other file outside the web root on boot, and mount an empty one if so.
@@ -21,11 +22,11 @@ Generate all of these with one script, so cutover can rerun it and diff (all but
 - `bodies/<type>/<id>.json`: parsed blocks **and** rendered HTML for every long-form body.
 - `options.json`, `navigation.json`: theme options, menus, footer, social links, snippets.
 - `seo.csv`: the **rendered** SEO output per URL (title, description, canonical, robots, Open Graph image, JSON-LD), fetched from the local pages. Rendered values, not the plugin's raw patterns. Keep the breadcrumb names the SEO plugin prints per URL (HTML-decoded): the new site's breadcrumbs reuse them, so no wording is invented.
-- `device-blocks.csv`: every container or block the theme shows or hides by device, with the page it is on.
+- `device-blocks.csv`: every container or block the theme shows or hides by device, with the page it is on. None of the first three kits wrote this file, so the generator needs it added: one walk of the block trees for the theme's show-or-hide setting.
 - `assets.csv`: every referenced upload with path, size, hash, dimensions, alt text and the records that use it (`seo-check.mjs` reads the columns named `file` and `alt`).
 - `urls.csv`: every public URL with its expected destination on the new site.
 - `redirects.csv`: the redirect rows the build produces (host rules converted, deliberate path changes, slugs Webflow altered). It is an output, rewritten by every run of `build-redirects.py`; a slug the importer changes goes into `redirects.extra` in the config.
-- `counts.md`: acceptance counts per type and status. Generated, never typed.
+- `counts.md`: acceptance counts per type and status. Generated, never typed. It holds counts only: where each type goes on the new site belongs in `PLAN.md`. A copied generator with a typed "destination" column printed "none (0 posts; no collection)" beside a count of 37 on the next site.
 
 ## Reference measurements
 
