@@ -45,6 +45,8 @@
 //           <verifyDir>/sweep/triage.md             the same differences grouped by cause (staging element +
 //                                                   property), by number of pages: one fix per row
 //           The count of page loads compared goes to standard error, so a run that compared nothing is plain to see.
+//           A part is also listed whenever the colour of some text differs under a region, however small its pixel
+//           share, and triage.md counts those first: text that has lost its colour can be invisible.
 // Exit codes: 0 no part differs; 1 a part differs or a page could not be loaded; 2 config missing or no path given.
 // Network:  the local WordPress copy and the staging origin, read only. Trackers and form posts are blocked. Nothing
 //           is clicked or submitted. --bust adds a ?sweep= parameter to staging requests to get past a cache; leave
@@ -68,17 +70,22 @@ const OUT = path.dirname(verify('sweep', 'img', 'x'));          // …/sweep/img
 const DIR = path.dirname(OUT);                                  // …/sweep
 const MIN = +arg('--min', opt('checks.sweep.minPct', 0.5));
 const slug = (p) => (p === '/' ? 'home' : p.replace(/^\//, '').replace(/[/?=&]+/g, '--'));
-const differs = (p) => p.issue || Math.abs(p.dh || 0) > 2 || (p.diffPct || 0) > MIN;
+// the colour of some text differs under a region: always listed, however few pixels it moves (white text on white
+// changed 1 to 4 % of a part's pixels, the same as a resampled photo)
+const MEDIA = /^(img|picture|video|canvas|svg|iframe)$/;   // these carry an alt or a title, not text a colour applies to
+const textColour = (p) => (p.regions || []).some((g) => g.diff?.el?.color && !MEDIA.test(g.wp?.el?.tag || '') && !MEDIA.test(g.wf?.el?.tag || '') && (g.wp?.el?.text || g.wf?.el?.text));
+const differs = (p) => p.issue || Math.abs(p.dh || 0) > 2 || (p.diffPct || 0) > MIN || textColour(p);
 
 // ---------------------------------------------------------------------------------------------- triage
 function triage() {
   const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.json'));
   const causes = new Map(); const shape = []; let parts = 0, bad = 0;
   // every differing part gets one kind, from what was measured, so the account of a run starts from numbers
-  const KIND = { shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
+  const KIND = { colour: 'the colour of some text differs: check it can still be read', shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
   const kinds = new Map(Object.keys(KIND).map((k) => [k, { n: 0, pages: new Set() }]));
   const stem = (f) => { let b = String(f || ''); try { b = decodeURIComponent(b); } catch {} return b.replace(/^[0-9a-f]{24}_/, '').replace(/\.[a-z0-9]+$/i, '').replace(/-scaled$/, '').replace(/-\d+x\d+$/, '').replace(/-\d+$/, '').toLowerCase(); };
   const kindOf = (p) => {
+    if (textColour(p)) return 'colour';
     if (p.issue || Math.abs(p.dh || 0) > 2) return 'shape';
     const regs = p.regions || [];
     if (regs.some((g) => ['el', 'parent'].some((l) => Object.keys(g.diff?.[l] || {}).some((k) => !/^box\.|^text$|^missing$|^tag$/.test(k))))) return 'value';   // a different tag with the same computed values is markup, not a visible difference
@@ -107,7 +114,7 @@ function triage() {
   }
   const list = [...causes.values()].sort((a, b) => b.pages.size - a.pages.size || b.n - a.n);
   const cell = (s) => String(s ?? '').replace(/\|/g, '/');
-  const kindRows = [...kinds.entries()].sort((a, b) => b[1].n - a[1].n);
+  const kindRows = [...kinds.entries()].sort((a, b) => (b[0] === 'colour') - (a[0] === 'colour') || b[1].n - a[1].n);   // colour first, whatever its count
   const md = ['# Sweep triage', '', `${files.length} page × width results · ${parts} parts · ${bad} differ (pixels > ${MIN} %, or height by more than 2 px, or missing)`, '',
     '## Differing parts by kind', '', 'Sorted from the measurements, to start the account of the run. Each kind still has to be explained in accepted-differences.md; "no value differs" is a description, not a verdict.', '',
     '| Kind | Parts | Pages |', '|---|---:|---:|', ...kindRows.map(([k, v]) => `| ${KIND[k]} | ${v.n} | ${v.pages.size} |`), '',
@@ -205,7 +212,13 @@ const SIDE_PREP = opt('checks.sweep.prep', {});
 async function grab(ctx, url, side) {
   const p = await ctx.newPage(); const errors = []; let status = 0;
   p.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
-  try { const r = await p.goto(url, { waitUntil: 'load', timeout: 90000 }); status = r ? r.status() : 0; } catch { /* measure what loaded */ }
+  // a host under a long parallel run now and then refuses one request (403, 500, a timeout) and answers the next:
+  // try once more before calling the page not loaded. A 404 is an answer and is not retried.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { const r = await p.goto(url, { waitUntil: 'load', timeout: 90000 }); status = r ? r.status() : 0; } catch { status = 0; }
+    if (status === 200 || status === 404 || status === 410) break;
+    await new Promise((r) => setTimeout(r, 4000));
+  }
   await p.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});   // a page with a live map never goes idle; the status is kept from the load
   await p.evaluate(PREP); if (SIDE_PREP[side]) await p.evaluate(SIDE_PREP[side]); const parts = await p.evaluate(PARTS, SEL);
   const shot = PNG.sync.read(await p.screenshot({ fullPage: true, animations: 'disabled' }));
