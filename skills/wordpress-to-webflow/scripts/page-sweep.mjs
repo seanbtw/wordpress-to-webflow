@@ -34,6 +34,8 @@
 //                                                         read. Default "header, nav, [role=banner]". Anything
 //                                                         fixed to the viewport is looked through without being
 //                                                         named here.
+//           checks.sweep.loadTimeoutSec (optional)        seconds one page load may take before it is given up as
+//                                                         hung and listed as not compared, default 300
 //           checks.sweep.minPct (optional)                share of a part's pixels that must differ before the
 //                                                         part is listed, default 0.5
 //           checks.sweep.prep.wp / .wf (optional)         JavaScript run in the page on that side before it is
@@ -253,10 +255,10 @@ const KEYS = ['tag', 'font', 'size', 'weight', 'lh', 'ls', 'tt', 'color', 'bg', 
 const delta = (a, b) => { if (!a || !b) return { missing: [!!a, !!b] }; const o = {}; for (const k of KEYS) if (String(a[k]) !== String(b[k])) o[k] = [a[k], b[k]];
   for (const [i, k] of ['x', 'y', 'w', 'h'].entries()) if (Math.abs(a.box[i] - b.box[i]) > 2) o['box.' + k] = [a.box[i], b.box[i]]; if (a.text !== b.text) o.text = [a.text, b.text]; return o; };
 
-async function one(pagePath, w) {
+async function one(pagePath, w, held) {
   const dev = w < 768 ? { ...devices['iPhone 13'], viewport: { width: w, height: 844 } } : { viewport: { width: w, height: 900 } };
   const mk = async () => { const c = await browser.newContext({ ...dev, deviceScaleFactor: 1, reducedMotion: 'reduce' }); await guard(c); return c; };
-  const ca = await mk(), cb = await mk();
+  const ca = await mk(), cb = await mk(); if (held) held.ctx = [ca, cb];   // so a load that hangs can be closed from outside
   const wfUrl = WF + pagePath + (has('--bust') ? (pagePath.includes('?') ? '&' : '?') + 'sweep=' + Date.now() : '');
   const [A, B] = await Promise.all([grab(ca, WP + wpPath(pagePath), 'wp'), grab(cb, wfUrl, 'wf')]);
   const res = { path: pagePath, w, wpPath: wpPath(pagePath), status: [A.status, B.status], docH: [A.docH, B.docH], partCount: [A.parts.length, B.parts.length], errors: { wp: A.errors, wf: B.errors }, parts: [] };
@@ -294,8 +296,16 @@ const every = pages.flatMap((p) => WIDTHS.map((w) => [p, w])); const total = eve
 const saved = ([p, w]) => path.join(DIR, `${slug(p)}.${w}.json`);
 const jobs = every.filter((j) => { if (!has('--resume') || !fs.existsSync(saved(j))) return true; try { all.push(JSON.parse(fs.readFileSync(saved(j), 'utf8'))); return false; } catch { return true; } });
 if (has('--resume')) console.error(`page-sweep: resuming, ${total - jobs.length} of ${total} page loads already saved`);
-await Promise.all([...Array(CONC)].map(async () => { while (jobs.length) { const [p, w] = jobs.shift(); try { all.push(await one(p, w)); } catch (e) { console.error('ERR', p, w, e.message.split('\n')[0]); all.push({ path: p, w, error: e.message.split('\n')[0] }); } } }));
-await browser.close();
+// One page that hangs the capture must not hold the run: a load with no result after the limit is closed, listed as
+// not compared, and the run goes on. Without this a single page froze a 1,239-load run for three and a half hours.
+const LIMIT = +opt('checks.sweep.loadTimeoutSec', 300) * 1000;
+const nap = (ms) => new Promise((r) => setTimeout(r, ms));
+const timed = async (p, w) => { const held = {}; let t;
+  const late = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`no result after ${LIMIT / 1000} s: the capture hung on this page (run it alone to see where)`)), LIMIT); });
+  try { return await Promise.race([one(p, w, held), late]); }
+  finally { clearTimeout(t); for (const c of held.ctx || []) await Promise.race([c.close().catch(() => {}), nap(5000)]); } };
+await Promise.all([...Array(CONC)].map(async () => { while (jobs.length) { const [p, w] = jobs.shift(); try { all.push(await timed(p, w)); } catch (e) { console.error('ERR', p, w, e.message.split('\n')[0]); all.push({ path: p, w, error: e.message.split('\n')[0] }); } } }));
+await Promise.race([browser.close().catch(() => {}), nap(10000)]);   // a hung page can hold the browser open: do not wait for it
 
 // summary: parts that differ, worst first; pages that could not be compared, first of all
 const failed = all.filter((r) => r.error);

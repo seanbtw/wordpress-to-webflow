@@ -127,8 +127,8 @@ async function one(path, w) {
   return { path, w, inline, invisible, counts };
 }
 const jobs = pages.flatMap((p) => WIDTHS.map((w) => [p, w])); const res = [];
-await Promise.all([...Array(CONC)].map(async () => { while (jobs.length) { const [p, w] = jobs.shift(); try { res.push(await one(p, w)); } catch (e) { console.log('ERR', p, w, e.message.split('\n')[0]); res.push({ path: p, w, error: e.message.split('\n')[0] }); } } }));
-await browser.close();
+await Promise.all([...Array(CONC)].map(async () => { while (jobs.length) { const [p, w] = jobs.shift(); try { let t; res.push(await Promise.race([one(p, w), new Promise((_, rej) => { t = setTimeout(() => rej(new Error('no result after 300 s: the page hung')), 300000); })]).finally(() => clearTimeout(t))); } catch (e) { console.log('ERR', p, w, e.message.split('\n')[0]); res.push({ path: p, w, error: e.message.split('\n')[0] }); } } }));
+await Promise.race([browser.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);   // a hung page can hold the browser open
 fs.writeFileSync(verify('colour-check.json'), JSON.stringify(res, null, 1));
 const ok = res.filter((r) => !r.error); const inl = ok.flatMap((r) => r.inline.map((x) => ({ ...x, path: r.path, w: r.w }))); const inv = ok.flatMap((r) => r.invisible.map((x) => ({ ...x, path: r.path, w: r.w })));
 const by = (k) => inl.filter((x) => x.verdict.startsWith(k)).length;
