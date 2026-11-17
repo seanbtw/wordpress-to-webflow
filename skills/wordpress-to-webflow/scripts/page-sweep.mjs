@@ -79,6 +79,10 @@ const slug = (p) => (p === '/' ? 'home' : p.replace(/^\//, '').replace(/[/?=&]+/
 // changed 1 to 4 % of a part's pixels, the same as a resampled photo)
 const MEDIA = /^(img|picture|video|canvas|svg|iframe)$/;   // these carry an alt or a title, not text a colour applies to
 const textColour = (p) => (p.regions || []).some((g) => g.diff?.el?.color && !MEDIA.test(g.wp?.el?.tag || '') && !MEDIA.test(g.wf?.el?.tag || '') && (g.wp?.el?.text || g.wf?.el?.text));
+// the stronger case: the same words on both sides, in two colours. Where the texts differ the point landed on two
+// different elements (a card on one side, the tag inside it on the other) and each has to be measured again by its text
+const colourRegs = (p) => (p.regions || []).filter((g) => g.diff?.el?.color && !MEDIA.test(g.wp?.el?.tag || '') && !MEDIA.test(g.wf?.el?.tag || '') && (g.wp?.el?.text || g.wf?.el?.text));
+const sameTextColour = (p) => colourRegs(p).some((g) => g.wp?.el?.text && g.wp.el.text === g.wf?.el?.text);
 const differs = (p) => p.issue || Math.abs(p.dh || 0) > 2 || (p.diffPct || 0) > MIN || textColour(p);
 
 // ---------------------------------------------------------------------------------------------- triage
@@ -86,11 +90,11 @@ function triage() {
   const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.json'));
   const causes = new Map(); const shape = []; let parts = 0, bad = 0;
   // every differing part gets one kind, from what was measured, so the account of a run starts from numbers
-  const KIND = { colour: 'the colour of some text differs: check it can still be read', shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
+  const KIND = { colour: 'the same text is a different colour on the two sides: a fault until explained', colourOther: 'a text colour differs, but the two texts under the spot are not the same: measure each text on both pages', shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
   const kinds = new Map(Object.keys(KIND).map((k) => [k, { n: 0, pages: new Set() }]));
   const stem = (f) => { let b = String(f || ''); try { b = decodeURIComponent(b); } catch {} return b.replace(/^[0-9a-f]{24}_/, '').replace(/\.[a-z0-9]+$/i, '').replace(/-scaled$/, '').replace(/-\d+x\d+$/, '').replace(/-\d+$/, '').toLowerCase(); };
   const kindOf = (p) => {
-    if (textColour(p)) return 'colour';
+    if (textColour(p)) return sameTextColour(p) ? 'colour' : 'colourOther';
     if (p.issue || Math.abs(p.dh || 0) > 2) return 'shape';
     const regs = p.regions || [];
     if (regs.some((g) => ['el', 'parent'].some((l) => Object.keys(g.diff?.[l] || {}).some((k) => !/^box\.|^text$|^missing$|^tag$/.test(k))))) return 'value';   // a different tag with the same computed values is markup, not a visible difference
@@ -119,7 +123,8 @@ function triage() {
   }
   const list = [...causes.values()].sort((a, b) => b.pages.size - a.pages.size || b.n - a.n);
   const cell = (s) => String(s ?? '').replace(/\|/g, '/');
-  const kindRows = [...kinds.entries()].sort((a, b) => (b[0] === 'colour') - (a[0] === 'colour') || b[1].n - a[1].n);   // colour first, whatever its count
+  const first = (k) => (k === 'colour' ? 2 : k === 'colourOther' ? 1 : 0);
+  const kindRows = [...kinds.entries()].sort((a, b) => first(b[0]) - first(a[0]) || b[1].n - a[1].n);   // the colour kinds first, whatever their count
   const md = ['# Sweep triage', '', `${files.length} page × width results · ${parts} parts · ${bad} differ (pixels > ${MIN} %, or height by more than 2 px, or missing)`, '',
     '## Differing parts by kind', '', 'Sorted from the measurements, to start the account of the run. Each kind still has to be explained in accepted-differences.md; "no value differs" is a description, not a verdict.', '',
     '| Kind | Parts | Pages |', '|---|---:|---:|', ...kindRows.map(([k, v]) => `| ${KIND[k]} | ${v.n} | ${v.pages.size} |`), '',
