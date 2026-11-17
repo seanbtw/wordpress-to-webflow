@@ -6,8 +6,9 @@
 // Usage:    node staging-paths.mjs [--config site.config.json]
 // Inputs:   WEBFLOW_TOKEN (environment), webflow.siteId, webflow.stagingOrigin.
 //           Optional: <verifyDir>/page-paths.json  { "<page id>": "/folder/page" }. The API's page list does not
-//           include folders, so a page inside a folder needs its full path given here; without an entry the path is
-//           built from the page's own slug and its parent pages' slugs.
+//           include folders. The path is taken, in this order, from that file, from the page's own publishedPath
+//           when the API gives one, and last from the page's slug and its parent pages' slugs (which loses a
+//           folder: /about-us/team comes out as /team).
 // Outputs:  <verifyDir>/staging-paths.json  { "/path": { kind: "page" | "item", id, title, collection? } }
 // Exit codes: 0 written; 2 config or token missing; 1 an API call failed.
 // Network:  reads the Webflow API, and sends one HEAD request per collection to the staging site (to see whether
@@ -34,6 +35,7 @@ const knownFile = verify('page-paths.json');
 const known = fs.existsSync(knownFile) ? JSON.parse(fs.readFileSync(knownFile, 'utf8')) : {};
 const pathOf = (p) => {
   if (known[p.id]) return known[p.id];
+  if (p.publishedPath) return p.publishedPath.replace(/\/+$/, '') || '/';
   const parts = [];
   for (let x = p; x; x = byId[x.parentId]) parts.unshift(x.slug);
   return '/' + parts.join('/');

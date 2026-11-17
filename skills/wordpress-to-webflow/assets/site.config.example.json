@@ -122,7 +122,8 @@
       "parts": "main > article, main",
       "footer": "footer",
       "hide": "header, nav, [role=banner]",
-      "minPct": 0.5
+      "minPct": 0.5,
+      "prep": { "wp": "", "wf": "" }
     },
     "headings": {
       "skipWithin": "nav, footer, [aria-hidden=true], .slider-track",

@@ -10,7 +10,9 @@
 // pictures it saves are for finding the place, never the verdict: a part listed for its pixels alone, with no value
 // differing, still has to be explained (a different slide, a resampled image, a lazy image painted blank).
 //
-// Usage:    node page-sweep.mjs --all [--widths 390,768,1440] [--conc 4] [--limit N] [--bust]
+// Usage:    node page-sweep.mjs --all [--widths 390,768,1440] [--conc 4] [--limit N] [--bust] [--resume]
+//           --resume skips every page and width that already has a result file, so a long run that stopped can be
+//           picked up; the summary then covers the saved results and the new ones together.
 //           node page-sweep.mjs /about /blog/a-post            only these paths
 //           node page-sweep.mjs --triage [--min 0.5]            regroup the saved results by cause, no page loads
 // Inputs:   wordpress.localOrigin, webflow.stagingOrigin
@@ -29,6 +31,12 @@
 //                                                         named here.
 //           checks.sweep.minPct (optional)                share of a part's pixels that must differ before the
 //                                                         part is listed, default 0.5
+//           checks.sweep.prep.wp / .wf (optional)         JavaScript run in the page on that side before it is
+//                                                         measured, to apply a difference that has been accepted
+//                                                         (remove a credit line the new site drops on purpose), so
+//                                                         it does not shift and flag every part below it
+//           pathRewrites (optional)                       [{ prefixRe, to }] rules map a staging path back to its
+//                                                         WordPress path when urls.csv has no row for it
 // Outputs:  <verifyDir>/sweep/<page>.<width>.json   every part of that page at that width, with regions and values
 //           <verifyDir>/sweep/img/…png              WordPress | staging | difference, for parts that differ
 //           <verifyDir>/sweep/summary.md            parts that differ, worst first (a full --all run only)
@@ -46,6 +54,10 @@
 //           so one missing part shifts every pair after it on that page. Then the causes, from the top of
 //           triage.md; one row usually covers many pages. Run again until it is clean or every row left has a
 //           line in accepted-differences.md. Expect the first run to be loud.
+// Known limits: parts are paired in order, not by content, so where one side prints an extra or an empty part every
+//           later pair on that page is wrong: fix or accept those first. Below a part whose height differs, the
+//           probes land on unrelated elements: read the height difference, not the values under it.
+//           A page that crashes the browser during capture is listed as not compared.
 // Known limit: lazy images on the old site can paint blank in the full-page capture although they are loaded;
 //           it shows as pixels differing with equal heights and no value differing. Group and count those rows.
 import fs from 'node:fs';
@@ -135,6 +147,7 @@ if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) {
   if (!r.expected_path || !r.path || r.expected_path.includes('?')) continue;
   const k = bare(r.expected_path); if (bare(r.path) === k || !(k in wpPathFor)) wpPathFor[k] = r.path;
 }
+for (const r of opt('pathRewrites', [])) if (r.prefixRe && r.to && !(bare(r.to) in wpPathFor)) wpPathFor[bare(r.to)] = r.prefixRe.replace(/^\^/, '').replace(/\/\?\$?$/, '').replace(/\$$/, '') + '/';
 const wpPath = (p) => wpPathFor[bare(p)] || (p === '/' ? '/' : p.replace(/\/+$/, '') + '/');
 
 const { chromium, devices } = await import('playwright');
@@ -166,11 +179,13 @@ const PARTS = (SEL) => {
 };
 const PROBE = async ({ pts, hideSel }) => {   // measured values of the element under each point (document coordinates)
   const hide = [...document.querySelectorAll(hideSel)].filter((e) => /fixed|sticky/.test(getComputedStyle(e).position));
-  const one = (el) => { const c = getComputedStyle(el), r = el.getBoundingClientRect(); const bw = [c.borderTopWidth, c.borderRightWidth, c.borderBottomWidth, c.borderLeftWidth];
+  const one = (el) => { const c = getComputedStyle(el), r = el.getBoundingClientRect();
     return { tag: el.tagName.toLowerCase(), cls: String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className).slice(0, 90), text: (el.innerText || el.getAttribute?.('alt') || '').trim().replace(/\s+/g, ' ').slice(0, 50),
       box: [Math.round(r.left + scrollX), Math.round(r.top + scrollY), Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10],
       font: c.fontFamily.split(',')[0].replace(/"/g, ''), size: c.fontSize, weight: c.fontWeight, lh: c.lineHeight, ls: c.letterSpacing, tt: c.textTransform, color: c.color, bg: c.backgroundColor, bgimg: c.backgroundImage.slice(0, 80),
-      pad: c.padding, margin: c.margin, border: bw.every((w) => parseFloat(w) === 0) ? 'none' : [...bw, c.borderTopStyle, c.borderTopColor].join(' '),   // a border with no width is no border, whatever its style
+      pad: c.padding, margin: c.margin,
+      // each side that is drawn, with its own style and colour; a side with no width or no style is no border
+      border: ['Top', 'Right', 'Bottom', 'Left'].map((k) => { const w = parseFloat(c['border' + k + 'Width']); const st = c['border' + k + 'Style']; return w && st !== 'none' && st !== 'hidden' ? `${k[0]} ${w}px ${st} ${c['border' + k + 'Color']}` : ''; }).filter(Boolean).join(', ') || 'none',
       radius: c.borderRadius, op: c.opacity, gap: c.gap, display: c.display, ta: c.textAlign, deco: c.textDecorationLine, shadow: c.boxShadow, obj: c.objectFit,
       src: (el.currentSrc || el.getAttribute?.('src') || '').split('?')[0].split('/').pop().slice(0, 120) }; };   // src is kept for sorting parts into kinds, not compared as a value
   // anything fixed to the viewport floats over the page: look through it, whatever element it is
@@ -178,18 +193,21 @@ const PROBE = async ({ pts, hideSel }) => {   // measured values of the element 
   const out = [];
   for (const [x, y] of pts) {
     window.scrollTo(0, Math.max(0, y - 300)); await new Promise((r) => setTimeout(r, 30));
-    hide.forEach((e) => (e.style.visibility = 'hidden')); const e = document.elementsFromPoint(x - scrollX, y - scrollY).find((n) => !floats(n)) || null; hide.forEach((h) => (h.style.visibility = ''));
-    out.push(e ? { el: one(e), parent: e.parentElement ? one(e.parentElement) : null } : null);
+    hide.forEach((e) => (e.style.visibility = 'hidden')); let e = document.elementsFromPoint(x - scrollX, y - scrollY).find((n) => !floats(n)) || null; hide.forEach((h) => (h.style.visibility = ''));
+    if (e && e.tagName === 'PICTURE') e = e.querySelector('img') || e;   // a <picture> has no box of its own: read its <img>
+    let par = e ? e.parentElement : null; if (par && par.tagName === 'PICTURE') par = par.parentElement;
+    out.push(e ? { el: one(e), parent: par ? one(par) : null } : null);
   }
   return out;
 };
 
-async function grab(ctx, url) {
+const SIDE_PREP = opt('checks.sweep.prep', {});
+async function grab(ctx, url, side) {
   const p = await ctx.newPage(); const errors = []; let status = 0;
   p.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
   try { const r = await p.goto(url, { waitUntil: 'load', timeout: 90000 }); status = r ? r.status() : 0; } catch { /* measure what loaded */ }
   await p.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});   // a page with a live map never goes idle; the status is kept from the load
-  await p.evaluate(PREP); const parts = await p.evaluate(PARTS, SEL);
+  await p.evaluate(PREP); if (SIDE_PREP[side]) await p.evaluate(SIDE_PREP[side]); const parts = await p.evaluate(PARTS, SEL);
   const shot = PNG.sync.read(await p.screenshot({ fullPage: true, animations: 'disabled' }));
   return { p, parts, shot, errors, status, docH: await p.evaluate(() => document.documentElement.scrollHeight) };
 }
@@ -213,7 +231,7 @@ async function one(pagePath, w) {
   const mk = async () => { const c = await browser.newContext({ ...dev, deviceScaleFactor: 1, reducedMotion: 'reduce' }); await guard(c); return c; };
   const ca = await mk(), cb = await mk();
   const wfUrl = WF + pagePath + (has('--bust') ? (pagePath.includes('?') ? '&' : '?') + 'sweep=' + Date.now() : '');
-  const [A, B] = await Promise.all([grab(ca, WP + wpPath(pagePath)), grab(cb, wfUrl)]);
+  const [A, B] = await Promise.all([grab(ca, WP + wpPath(pagePath), 'wp'), grab(cb, wfUrl, 'wf')]);
   const res = { path: pagePath, w, wpPath: wpPath(pagePath), status: [A.status, B.status], docH: [A.docH, B.docH], partCount: [A.parts.length, B.parts.length], errors: { wp: A.errors, wf: B.errors }, parts: [] };
   if (A.status !== 200 || B.status !== 200) res.error = `not 200 on both sides (WordPress ${A.status}, staging ${B.status})`;
   const n = res.error ? 0 : Math.max(A.parts.length, B.parts.length);
@@ -245,7 +263,10 @@ async function one(pagePath, w) {
   return res;
 }
 
-const jobs = pages.flatMap((p) => WIDTHS.map((w) => [p, w])); const total = jobs.length; const all = [];
+const every = pages.flatMap((p) => WIDTHS.map((w) => [p, w])); const total = every.length; const all = [];
+const saved = ([p, w]) => path.join(DIR, `${slug(p)}.${w}.json`);
+const jobs = every.filter((j) => { if (!has('--resume') || !fs.existsSync(saved(j))) return true; try { all.push(JSON.parse(fs.readFileSync(saved(j), 'utf8'))); return false; } catch { return true; } });
+if (has('--resume')) console.error(`page-sweep: resuming, ${total - jobs.length} of ${total} page loads already saved`);
 await Promise.all([...Array(CONC)].map(async () => { while (jobs.length) { const [p, w] = jobs.shift(); try { all.push(await one(p, w)); } catch (e) { console.error('ERR', p, w, e.message.split('\n')[0]); all.push({ path: p, w, error: e.message.split('\n')[0] }); } } }));
 await browser.close();
 
