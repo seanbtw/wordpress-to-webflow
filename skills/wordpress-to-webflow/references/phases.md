@@ -175,7 +175,7 @@ Done when
 The twelve checks are in `verification.md`. The agent performs the editor-acceptance steps through the Designer or Editor and records how; the owner repeats them at review.
 
 Done when
-- The sequence check, URL checker, link crawl (both passes), console check, body comparison, glued-words check and SEO check each report zero failures, with the output in `PROGRESS.md`. The standing exceptions are listed as waiting, not hidden: on a site with no plan, redirect rows and sitemap membership; and any page where WordPress itself prints no `h1` or several.
+- The sequence check, URL checker, link crawl (both passes), console check, body comparison, glued-words check, leftover-text check, colour check and SEO check each report zero failures, with the output in `PROGRESS.md`. The standing exceptions are listed as waiting, not hidden: on a site with no plan, redirect rows and sitemap membership; and any page where WordPress itself prints no `h1` or several.
 - A measurement report exists for every static page and template example at the fixed widths, with zero mismatches or every remaining difference in `verify/accepted-differences.md` with a reason.
 - The whole-page sweep (`scripts/page-sweep.mjs --all`) has compared every path at phone, tablet and desktop widths after the last release: its triage is empty, or every row left is in `verify/accepted-differences.md` with a reason. "Compared N of N page loads" is quoted in `PROGRESS.md`.
 - The behaviour checklist is ticked in real Safari and iOS Safari as well as Chromium, rerun in full after the last release.

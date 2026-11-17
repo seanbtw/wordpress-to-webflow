@@ -127,6 +127,7 @@
       "minPct": 0.5,
       "prep": { "wp": "", "wf": "" }
     },
+    "leftovers": { "extra": [], "allow": [] },
     "headings": {
       "skipWithin": "nav, footer, [aria-hidden=true], .slider-track",
       "srOnly": ".sr-only",

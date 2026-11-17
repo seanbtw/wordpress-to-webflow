@@ -116,6 +116,8 @@ All but one read one `site.config.json` (start from [`site.config.example.json`]
 | What scripts, tags and metas did the old site print that the new one does not? | `code-parity.py`, `code-parity-report.py` |
 | Does every body read the same? Did two words fuse? | `compare-bodies.mjs`, `glued-words.mjs` |
 | Does every page, not a sample, match the old one, and if not, which value differs? | `page-sweep.mjs` |
+| Is any text on the new site unreadable against what is behind it? | `colour-check.mjs` |
+| Is any placeholder or default text left on a published page, even in a hidden element? | `leftover-text.mjs` |
 | Do the CMS counts still match? | `cms-counts.mjs` |
 | Is the sitemap free of pages that should not be in it? | `sitemap-exclude.mjs` |
 | Is the schema markup valid and true to the page? | `verify-jsonld.mjs`, `schema-vocab-check.mjs` |
