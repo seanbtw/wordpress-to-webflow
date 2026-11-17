@@ -121,6 +121,8 @@
       "widths": [390, 768, 1440],
       "parts": "main > article, main",
       "footer": "footer",
+      "header": "header",
+      "bars": "",
       "hide": "header, nav, [role=banner]",
       "minPct": 0.5,
       "prep": { "wp": "", "wf": "" }

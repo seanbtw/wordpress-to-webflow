@@ -210,6 +210,7 @@ The multiplier must be large (10,000 was too small for percentage steps). Measur
 - `overflow: hidden` on a sticky element's parent makes the parent the sticky reference. Use `overflow: clip` when clipping is wanted.
 - Safari draws its own magnifier in `input[type=search]`; reset `appearance` and the `::-webkit-search-*` parts.
 - In bundle edits, never append a `//` comment to a one-line statement: it swallows the rest of the line. Use `/* */`.
+- **Webflow's rich-text clearfix stops a margin collapsing.** The first element's top margin, which collapses through the container on the old site, is kept inside a `.w-richtext` block, so text sits a few pixels lower (8 px on one template). Measure the first element's offset, not only the block's height.
 - **`:has()` cannot be nested inside `:has()`.** The browser drops the whole rule without a word. It was found by measuring (a gap stayed 0), not by any error: every new CSS rule gets a measured check before release.
 
 ## Reporting a fault to Webflow

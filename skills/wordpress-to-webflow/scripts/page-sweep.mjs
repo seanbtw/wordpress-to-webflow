@@ -2,8 +2,8 @@
 // measured cause of each difference. It exists because sampled measurements pass while real pages differ: a block
 // spec proves the blocks it names, and one template example proves that one item. This run has no sample.
 //
-// How it works. Each page is split into its parts: the direct children of the main content wrapper, then the footer,
-// paired in order. For each pair it compares the box (a part missing, extra, or a different height), then lays the two
+// How it works. Each page is split into its parts: the header (and any other bar the config names), the direct
+// children of the main content wrapper, then the footer, paired in order. For each pair it compares the box (a part missing, extra, or a different height), then lays the two
 // parts over each other ONLY TO LOCATE where they differ (16 px cells joined into regions), then reads the computed
 // values of the element under each region on both sides (tag, font, size, weight, line height, colour, padding, margin,
 // border, gap, display and so on). So every difference is reported as a measured value, WordPress → staging. The
@@ -24,6 +24,11 @@
 //           checks.sweep.parts (optional)                 selector of the wrapper whose direct children are the
 //                                                         parts, default "main > article, main" (first match)
 //           checks.sweep.footer (optional)                default "footer"
+//           checks.sweep.header (optional)                default "header"; compared as the first part, at rest
+//           checks.sweep.bars (optional)                  selector of other bars that float over the page (a sticky
+//                                                         in-page menu); each is compared as a part of its own.
+//                                                         Without this a sticky bar is looked through and its own
+//                                                         colours and type are never read
 //           checks.sweep.hide (optional)                  selector of sticky bars that float over the page; any
 //                                                         match that is fixed or sticky is hidden while values are
 //                                                         read. Default "header, nav, [role=banner]". Anything
@@ -134,7 +139,7 @@ const WP = origin('wordpress.localOrigin');
 const WF = origin('webflow.stagingOrigin');
 const WIDTHS = String(arg('--widths', opt('checks.sweep.widths', [390, 768, 1440]).join(','))).split(',').map(Number).filter(Boolean);
 const CONC = +arg('--conc', 4);
-const SEL = { parts: opt('checks.sweep.parts', 'main > article, main'), footer: opt('checks.sweep.footer', 'footer'), hide: opt('checks.sweep.hide', 'header, nav, [role=banner]') };
+const SEL = { parts: opt('checks.sweep.parts', 'main > article, main'), footer: opt('checks.sweep.footer', 'footer'), hide: opt('checks.sweep.hide', 'header, nav, [role=banner]'), header: opt('checks.sweep.header', 'header'), bars: opt('checks.sweep.bars', '') };
 
 let pages = positionals(['--widths', '--conc', '--limit', '--min']);
 if (has('--all')) {
@@ -179,13 +184,17 @@ const PARTS = (SEL) => {
   let wrap = null; for (const s of SEL.parts.split(',')) { wrap = document.querySelector(s.trim()); if (wrap) break; }
   const kids = wrap ? [...wrap.children] : [];
   const foot = document.querySelector(SEL.footer);
-  const all = [...kids, ...(foot && !wrap?.contains(foot) ? [foot] : [])].filter((e) => !/^(script|style|template|noscript)$/i.test(e.tagName));
+  // the header and any named bar float over the page: they are parts of their own, read as they are and not looked through
+  const q = (s) => { try { return s ? [...document.querySelectorAll(s)] : []; } catch { return []; } };
+  // the site header only: a <header> inside the content or the footer (an article's own header) stays where it is
+  const bars = [...q(SEL.header).filter((e) => !(wrap && wrap.contains(e)) && !(foot && foot.contains(e))), ...q(SEL.bars)].filter((e, i, a) => a.indexOf(e) === i && !a.some((o) => o !== e && o.contains(e)));
+  const all = [...bars, ...kids.filter((k) => !bars.includes(k)), ...(foot && !wrap?.contains(foot) && !bars.includes(foot) ? [foot] : [])].filter((e) => !/^(script|style|template|noscript)$/i.test(e.tagName));
   const sig = (e) => e.id ? `${e.tagName.toLowerCase()}#${e.id}` : `${e.tagName.toLowerCase()}.${String(e.className && e.className.baseVal !== undefined ? e.className.baseVal : e.className).split(/\s+/).filter(Boolean)[0] || ''}`;
-  return all.map((e, i) => { const r = e.getBoundingClientRect(); return { i, sig: sig(e), cls: String(e.className).slice(0, 80), x: Math.max(0, Math.round(r.left + scrollX)), y: Math.max(0, Math.round(r.top + scrollY)), w: Math.round(r.width), h: Math.round(r.height), text: (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 60) }; })
+  return all.map((e, i) => { const r = e.getBoundingClientRect(); return { i, bar: bars.includes(e), sig: sig(e), cls: String(e.className).slice(0, 80), x: Math.max(0, Math.round(r.left + scrollX)), y: Math.max(0, Math.round(r.top + scrollY)), w: Math.round(r.width), h: Math.round(r.height), text: (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 60) }; })
     .filter((p) => p.w > 0 && p.h > 0);
 };
-const PROBE = async ({ pts, hideSel }) => {   // measured values of the element under each point (document coordinates)
-  const hide = [...document.querySelectorAll(hideSel)].filter((e) => /fixed|sticky/.test(getComputedStyle(e).position));
+const PROBE = async ({ pts, hideSel, bar }) => {   // measured values of the element under each point (document coordinates)
+  const hide = bar ? [] : [...document.querySelectorAll(hideSel)].filter((e) => /fixed|sticky/.test(getComputedStyle(e).position));
   const one = (el) => { const c = getComputedStyle(el), r = el.getBoundingClientRect();
     return { tag: el.tagName.toLowerCase(), cls: String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className).slice(0, 90), text: (el.innerText || el.getAttribute?.('alt') || '').trim().replace(/\s+/g, ' ').slice(0, 50),
       box: [Math.round(r.left + scrollX), Math.round(r.top + scrollY), Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10],
@@ -196,7 +205,7 @@ const PROBE = async ({ pts, hideSel }) => {   // measured values of the element 
       radius: c.borderRadius, op: c.opacity, gap: c.gap, display: c.display, ta: c.textAlign, deco: c.textDecorationLine, shadow: c.boxShadow, obj: c.objectFit,
       src: (el.currentSrc || el.getAttribute?.('src') || '').split('?')[0].split('/').pop().slice(0, 120) }; };   // src is kept for sorting parts into kinds, not compared as a value
   // anything fixed to the viewport floats over the page: look through it, whatever element it is
-  const floats = (el) => { for (let n = el; n && n !== document.documentElement; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return true; return false; };
+  const floats = (el) => { if (bar) return false; for (let n = el; n && n !== document.documentElement; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return true; return false; };
   const out = [];
   for (const [x, y] of pts) {
     window.scrollTo(0, Math.max(0, y - 300)); await new Promise((r) => setTimeout(r, 30));
@@ -260,7 +269,7 @@ async function one(pagePath, w) {
     const regs = regions(diff, cw, chh).slice(0, 8);
     if (regs.length) {
       const pts = regs.map((r) => [r.x + Math.min(r.w / 2, 40), r.y + Math.min(r.h / 2, 24)]);   // a point near each region's top-left, where a shift starts
-      const [pa, pb] = await Promise.all([A.p.evaluate(PROBE, { pts: pts.map(([x, y]) => [a.x + x, a.y + y]), hideSel: SEL.hide }), B.p.evaluate(PROBE, { pts: pts.map(([x, y]) => [b.x + x, b.y + y]), hideSel: SEL.hide })]);
+      const [pa, pb] = await Promise.all([A.p.evaluate(PROBE, { pts: pts.map(([x, y]) => [a.x + x, a.y + y]), hideSel: SEL.hide, bar: !!a.bar }), B.p.evaluate(PROBE, { pts: pts.map(([x, y]) => [b.x + x, b.y + y]), hideSel: SEL.hide, bar: !!b.bar })]);
       row.regions = regs.map((r, k) => ({ ...r, at: [a.x + r.x, a.y + r.y], wp: pa[k], wf: pb[k], diff: { el: delta(pa[k]?.el, pb[k]?.el), parent: delta(pa[k]?.parent, pb[k]?.parent) } }));
       if (differs(row)) {   // a picture to find the place: WordPress | staging | difference (capped at 2400 px tall)
         const H = Math.min(chh, 2400), out = new PNG({ width: cw * 3 + 20, height: H }); out.data.fill(255);
