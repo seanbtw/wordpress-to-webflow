@@ -236,6 +236,10 @@ const PARTS = (SEL) => {
 };
 const PROBE = async ({ pts, hideSel, bar }) => {   // measured values of the element under each point (document coordinates)
   const hide = bar ? [] : [...document.querySelectorAll(hideSel)].filter((e) => /fixed|sticky/.test(getComputedStyle(e).position));
+  // the underline that is drawn: an element inside an underlined link reads 'none' itself, because the line comes down from the ancestor.
+  // It stops at a float, an absolutely placed box and an inline-block, which an ancestor's line does not reach.
+  const drawnDeco = (el) => { const s = new Set(); for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = getComputedStyle(n); for (const t of c.textDecorationLine.split(' ')) if (t && t !== 'none') s.add(t);
+    if (c.float !== 'none' || /absolute|fixed/.test(c.position) || /^inline-(block|table|flex|grid)$/.test(c.display)) break; } return [...s].sort().join(' ') || 'none'; };
   const one = (el) => { const c = getComputedStyle(el), r = el.getBoundingClientRect();
     return { tag: el.tagName.toLowerCase(), cls: String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className).slice(0, 90), text: (el.innerText || el.getAttribute?.('alt') || '').trim().replace(/\s+/g, ' ').slice(0, 50),
       box: [Math.round(r.left + scrollX), Math.round(r.top + scrollY), Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10],
@@ -243,7 +247,7 @@ const PROBE = async ({ pts, hideSel, bar }) => {   // measured values of the ele
       pad: c.padding, margin: c.margin,
       // each side that is drawn, with its own style and colour; a side with no width or no style is no border
       border: ['Top', 'Right', 'Bottom', 'Left'].map((k) => { const w = parseFloat(c['border' + k + 'Width']); const st = c['border' + k + 'Style']; return w && st !== 'none' && st !== 'hidden' ? `${k[0]} ${w}px ${st} ${c['border' + k + 'Color']}` : ''; }).filter(Boolean).join(', ') || 'none',
-      radius: c.borderRadius, op: c.opacity, gap: c.gap, display: c.display, ta: c.textAlign, deco: c.textDecorationLine, shadow: c.boxShadow, obj: c.objectFit,
+      radius: c.borderRadius, op: c.opacity, gap: c.gap, display: c.display, ta: c.textAlign, deco: drawnDeco(el), fst: c.fontStyle, shadow: c.boxShadow, obj: c.objectFit,
       src: (el.currentSrc || el.getAttribute?.('src') || '').split('?')[0].split('/').pop().slice(0, 120) }; };   // src is kept for sorting parts into kinds, not compared as a value
   // anything fixed to the viewport floats over the page: look through it, whatever element it is
   const floats = (el) => { if (bar) return false; for (let n = el; n && n !== document.documentElement; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return true; return false; };
@@ -282,11 +286,12 @@ function regions(diff, w, h, cell = 16) {   // cells with more than 4 % differin
   for (let s = 0; s < hot.length; s++) { if (!hot[s] || seen[s]) continue; let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, n = 0; const st = [s]; seen[s] = 1;
     while (st.length) { const k = st.pop(); const cx = k % cw, cy = (k / cw) | 0; n++; x0 = Math.min(x0, cx); y0 = Math.min(y0, cy); x1 = Math.max(x1, cx); y1 = Math.max(y1, cy);
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= cw || ny >= ch) continue; const q = ny * cw + nx; if (hot[q] && !seen[q]) { seen[q] = 1; st.push(q); } } }
-    out.push({ x: x0 * cell, y: y0 * cell, w: (x1 - x0 + 1) * cell, h: (y1 - y0 + 1) * cell, cells: n }); }
+    out.push({ x: x0 * cell, y: y0 * cell, w: Math.min((x1 - x0 + 1) * cell, w - x0 * cell), h: Math.min((y1 - y0 + 1) * cell, h - y0 * cell), cells: n }); }   // kept inside the picture: the last column or row of cells can hang over its edge, and a point out there is on neither page
   return out.sort((a, b) => b.cells - a.cells);
 }
-const KEYS = ['tag', 'font', 'size', 'weight', 'lh', 'ls', 'tt', 'color', 'bg', 'bgimg', 'pad', 'margin', 'border', 'radius', 'op', 'gap', 'display', 'ta', 'deco', 'shadow', 'obj'];
-const delta = (a, b) => { if (!a || !b) return { missing: [!!a, !!b] }; const o = {}; for (const k of KEYS) if (String(a[k]) !== String(b[k])) o[k] = [a[k], b[k]];
+const KEYS = ['tag', 'font', 'size', 'weight', 'lh', 'ls', 'tt', 'color', 'bg', 'bgimg', 'pad', 'margin', 'border', 'radius', 'op', 'gap', 'display', 'ta', 'deco', 'fst', 'shadow', 'obj'];
+// missing: true on the side that has no element under the spot
+const delta = (a, b) => { if (!a || !b) return { missing: [!a, !b] }; const o = {}; for (const k of KEYS) if (String(a[k]) !== String(b[k])) o[k] = [a[k], b[k]];
   for (const [i, k] of ['x', 'y', 'w', 'h'].entries()) if (Math.abs(a.box[i] - b.box[i]) > 2) o['box.' + k] = [a.box[i], b.box[i]]; if (a.text !== b.text) o.text = [a.text, b.text]; return o; };
 
 async function one(pagePath, w, held) {

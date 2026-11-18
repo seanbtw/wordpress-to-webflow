@@ -67,10 +67,15 @@ const SCAN = ({ inlineOnly }) => {
   const blend = (fg, bg, a) => ({ r: fg.r * a + bg.r * (1 - a), g: fg.g * a + bg.g * (1 - a), b: fg.b * a + bg.b * (1 - a) });
   const ratio = (x, y) => { const a = lum(x), b = lum(y); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
   const own = (e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
-  const visible = (e) => { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = e; x; x = x.parentElement) { const c = getComputedStyle(x); if (c.display === 'none' || c.visibility === 'hidden' || +c.opacity === 0) return false; } return true; };
+  // text clipped to nothing (a screen-reader label: a 1 px box that hides what overflows it, or clip: rect(0 0 0 0)) is never drawn, so it has no contrast to measure
+  const clipped = (x, c) => { if (/absolute|fixed/.test(c.position) && /^rect\(0px,? 0px,? 0px,? 0px\)$/.test(c.clip)) return true; if (/^inset\((50|100)%\)$/.test(c.clipPath)) return true; if (c.overflowX === 'visible' && c.overflowY === 'visible') return false; const r = x.getBoundingClientRect(); return r.width <= 1 && r.height <= 1; };
+  const visible = (e) => { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = e; x; x = x.parentElement) { const c = getComputedStyle(x); if (c.display === 'none' || c.visibility === 'hidden' || +c.opacity === 0 || clipped(x, c)) return false; } return true; };
   const behind = (e) => {   // what the text sits on: first opaque layer in the paint stack at the text's first line
     const range = document.createRange(); const tn = [...e.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim()); if (tn) range.selectNodeContents(tn); const rects = tn ? range.getClientRects() : []; const r0 = rects[0] || e.getBoundingClientRect();
-    window.scrollTo(0, Math.max(0, r0.top + scrollY - innerHeight / 2)); const rr = (tn ? range.getClientRects()[0] : null) || e.getBoundingClientRect();
+    // text in a box fixed to the window does not move with the page: at the scroll position an earlier element left, later content lies over it.
+    // Read it at the top of the page, where a fixed hero is in view.
+    let fixed = false; for (let n = e; n && n !== document.documentElement; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') { fixed = true; break; }
+    window.scrollTo(0, fixed ? 0 : Math.max(0, r0.top + scrollY - innerHeight / 2)); const rr = (tn ? range.getClientRects()[0] : null) || e.getBoundingClientRect();
     const x = rr.left + Math.min(rr.width / 2, 20), y = rr.top + rr.height / 2; if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return { kind: 'offscreen' };
     const stack = document.elementsFromPoint(x, y); let bg = null;
     for (const el of stack) { const c = getComputedStyle(el);
