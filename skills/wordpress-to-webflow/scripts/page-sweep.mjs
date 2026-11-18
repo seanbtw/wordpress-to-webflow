@@ -118,14 +118,18 @@ function triage() {
   const leftOut = old || gone || stale ? ` (left out: ${old} older results for the same page and width, ${gone} for pages not in this run's page list${stale ? `, ${stale} older results for loads the last run could not compare` : ''})` : '';
   const causes = new Map(); const shape = []; let parts = 0, bad = 0;
   // every differing part gets one kind, from what was measured, so the account of a run starts from numbers
-  const KIND = { colour: 'the same text is a different colour on the two sides: a fault until explained', colourOther: 'a text colour differs, but the two texts under the spot are not the same: measure each text on both pages', shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
+  const KIND = { colour: 'the same text is a different colour on the two sides: a fault until explained', colourOther: 'a text colour differs, but the two texts under the spot are not the same: measure each text on both pages', shape: 'missing, extra or a different height', value: 'a measured value differs', valueOther: 'a measured value differs, but the two texts under the spot are not the same: match the texts and measure each on both pages', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
   const kinds = new Map(Object.keys(KIND).map((k) => [k, { n: 0, pages: new Set() }]));
-  const stem = (f) => { let b = String(f || ''); try { b = decodeURIComponent(b); } catch {} return b.replace(/^[0-9a-f]{24}_/, '').replace(/\.[a-z0-9]+$/i, '').replace(/-scaled$/, '').replace(/-\d+x\d+$/, '').replace(/-\d+$/, '').toLowerCase(); };
+  // decoded until it stops changing: Webflow encodes an already-encoded file name a second time (%C2%A9 becomes %25C2%25A9)
+  const stem = (f) => { let b = String(f || ''); for (let i = 0; i < 3; i++) { try { const d = decodeURIComponent(b); if (d === b) break; b = d; } catch { break; } } return b.replace(/^[0-9a-f]{24}_/, '').replace(/\.[a-z0-9]+$/i, '').replace(/-scaled$/, '').replace(/-\d+x\d+$/, '').replace(/-\d+$/, '').toLowerCase(); };
   const kindOf = (p) => {
     if (textColour(p)) return sameTextColour(p) ? 'colour' : 'colourOther';
     if (p.issue || Math.abs(p.dh || 0) > 2) return 'shape';
     const regs = p.regions || [];
-    if (regs.some((g) => ['el', 'parent'].some((l) => Object.keys(g.diff?.[l] || {}).some((k) => !/^box\.|^text$|^missing$|^tag$/.test(k))))) return 'value';   // a different tag with the same computed values is markup, not a visible difference
+    const vals = regs.filter((g) => ['el', 'parent'].some((l) => Object.keys(g.diff?.[l] || {}).some((k) => !/^box\.|^text$|^missing$|^tag$/.test(k))));
+    // where every such spot has a different text on each side, the point landed on two different elements: the values
+    // compared belong to different things (a heading against a paragraph), so the row is a pairing until measured by text
+    if (vals.length) return vals.every((g) => g.wp?.el?.text && g.wf?.el?.text && g.wp.el.text !== g.wf.el.text) ? 'valueOther' : 'value';   // a different tag with the same computed values is markup, not a visible difference
     const pic = regs.filter((g) => /^(img|picture|video|canvas|svg)$/.test(g.wp?.el?.tag || '') || /^(img|picture|video|canvas|svg)$/.test(g.wf?.el?.tag || '') || (g.wp?.el?.bgimg && g.wp.el.bgimg !== 'none'));
     if (pic.some((g) => g.wp?.el?.src && g.wf?.el?.src && stem(g.wp.el.src) !== stem(g.wf.el.src))) return 'picture';
     return pic.length ? 'pixels' : 'text';
