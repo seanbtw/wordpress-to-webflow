@@ -152,3 +152,4 @@ Read `references/webflow-traps.md` before Phase 1. The short list:
 21. Publishing an item publishes it even if it was only ever a draft. Two builds put drafts live on staging while fixing a field. Publish only items that were already live, and check the listing's card count afterwards.
 22. Text that loses its colour can be invisible and still move almost no pixels. Read the sweep's text-colour row first, and compare every inline colour on the old site with the new one.
 23. A multi-image field drops a picture it cannot fetch without saying so. Pair pictures by name or content, never by position, and count them per field against the old site (`import.md`).
+24. A page that matches the old one perfectly may still be a static copy. Count CMS-drawn cards on every listing; 0 means it will never show a new item.
