@@ -59,12 +59,15 @@
 //           is clicked or submitted. --bust adds a ?sweep= parameter to staging requests to get past a cache; leave
 //           it off on pages whose scripts read the query string (filters), where it changes what is shown.
 // Needs:    playwright, pixelmatch, pngjs (npm install, then npx playwright install chromium).
-// Reading the result: first the parts missing or extra (the second table of triage.md): parts are paired in order,
-//           so one missing part shifts every pair after it on that page. Then the causes, from the top of
+// Reading the result: first the parts missing or extra (the second table of triage.md): parts are paired in order
+//           within their group (bars with bars, content with content, footer with footer), so one missing content
+//           part shifts every content pair after it on that page. Then the causes, from the top of
 //           triage.md; one row usually covers many pages. Run again until it is clean or every row left has a
 //           line in accepted-differences.md. Expect the first run to be loud.
-// Known limits: parts are paired in order, not by content, so where one side prints an extra or an empty part every
-//           later pair on that page is wrong: fix or accept those first. Below a part whose height differs, the
+// Known limits: parts are paired in order, not by content, so where one side prints an extra or an empty content part
+//           every later content pair on that page is wrong: fix or accept those first. A bar found on one side only
+//           is listed as a bar and shifts nothing; it is usually a selector in checks.sweep.bars (or .header) that
+//           matches on one side. Below a part whose height differs, the
 //           probes land on unrelated elements: read the height difference, not the values under it.
 //           A page that crashes the browser during capture is listed as not compared.
 // Known limit: lazy images on the old site can paint blank in the full-page capture although they are loaded;
@@ -89,7 +92,22 @@ const differs = (p) => p.issue || Math.abs(p.dh || 0) > 2 || (p.diffPct || 0) > 
 
 // ---------------------------------------------------------------------------------------------- triage
 function triage() {
-  const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.json'));
+  // One result per page and width: the newest. A folder that has seen earlier runs holds results under other names
+  // (the same page asked for with and without its closing slash) and results for pages since removed; counted in,
+  // they nearly doubled one run's totals. Pages not in staging-paths.json, or excluded in the config, are left out
+  // when that file exists.
+  const bareP = (p) => (String(p).split('?')[0].replace(/\/+$/, '') || '/') + (String(p).includes('?') ? '?' + String(p).split('?')[1] : '');
+  const skip = opt('checks.excludePathRes', []).map((x) => new RegExp(x));
+  let known = null; try { known = new Set(Object.keys(JSON.parse(fs.readFileSync(verify('staging-paths.json'), 'utf8'))).filter((q) => !skip.some((x) => x.test(q))).map(bareP)); } catch {}
+  const newest = new Map(); let old = 0, gone = 0;
+  for (const f of fs.readdirSync(DIR).filter((f) => f.endsWith('.json'))) {
+    let r; try { r = JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')); } catch { continue; } if (!r.parts || !r.path) continue;
+    if (known && !known.has(bareP(r.path))) { gone++; continue; }
+    const k = `${bareP(r.path)} @${r.w}`, t = fs.statSync(path.join(DIR, f)).mtimeMs, had = newest.get(k);
+    if (had) old++; if (!had || t > had.t) newest.set(k, { f, t });
+  }
+  const files = [...newest.values()].map((v) => v.f);
+  const leftOut = old || gone ? ` (left out: ${old} older results for the same page and width, ${gone} for pages not in this run's page list)` : '';
   const causes = new Map(); const shape = []; let parts = 0, bad = 0;
   // every differing part gets one kind, from what was measured, so the account of a run starts from numbers
   const KIND = { colour: 'the same text is a different colour on the two sides: a fault until explained', colourOther: 'a text colour differs, but the two texts under the spot are not the same: measure each text on both pages', shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
@@ -127,7 +145,7 @@ function triage() {
   const cell = (s) => String(s ?? '').replace(/\|/g, '/');
   const first = (k) => (k === 'colour' ? 2 : k === 'colourOther' ? 1 : 0);
   const kindRows = [...kinds.entries()].sort((a, b) => first(b[0]) - first(a[0]) || b[1].n - a[1].n);   // the colour kinds first, whatever their count
-  const md = ['# Sweep triage', '', `${files.length} page × width results · ${parts} parts · ${bad} differ (pixels > ${MIN} %, or height by more than 2 px, or missing)`, '',
+  const md = ['# Sweep triage', '', `${files.length} page × width results${leftOut} · ${parts} parts · ${bad} differ (pixels > ${MIN} %, or height by more than 2 px, or missing)`, '',
     '## Differing parts by kind', '', 'Sorted from the measurements, to start the account of the run. Each kind still has to be explained in accepted-differences.md; "no value differs" is a description, not a verdict.', '',
     '| Kind | Parts | Pages |', '|---|---:|---:|', ...kindRows.map(([k, v]) => `| ${KIND[k]} | ${v.n} | ${v.pages.size} |`), '',
     '## Causes, by number of pages', '', 'Staging element (WordPress element) and the property that differs, WordPress → staging. One fix per row.', '',
@@ -136,7 +154,7 @@ function triage() {
     '', '## Parts missing, extra or a different height', '', '| Page | Width | Part | Issue | WordPress h | Staging h | Δh | Picture |', '|---|---:|---|---|---:|---:|---:|---|',
     ...shape.sort((a, b) => (b.issue ? 1e6 : Math.abs(b.dh)) - (a.issue ? 1e6 : Math.abs(a.dh))).map((s) => `| ${s.page} | ${s.w} | #${s.i} ${cell(s.sig)} | ${s.issue || ''} | ${s.wpH ?? '–'} | ${s.wfH ?? '–'} | ${s.dh ?? ''} | ${s.img || ''} |`)];
   fs.writeFileSync(path.join(DIR, 'triage.md'), md.join('\n') + '\n');
-  console.error(`page-sweep: triage of ${files.length} results, ${bad} of ${parts} parts differ, ${list.length} causes → ${path.join(DIR, 'triage.md')}`);
+  console.error(`page-sweep: triage of ${files.length} results${leftOut}, ${bad} of ${parts} parts differ, ${list.length} causes → ${path.join(DIR, 'triage.md')}`);
   return bad;
 }
 if (has('--triage')) process.exit(triage() ? 1 : 0);
@@ -197,7 +215,7 @@ const PARTS = (SEL) => {
   const bars = [...q(SEL.header).filter((e) => !(wrap && wrap.contains(e)) && !(foot && foot.contains(e))), ...q(SEL.bars)].filter((e, i, a) => a.indexOf(e) === i && !a.some((o) => o !== e && o.contains(e)));
   const all = [...bars, ...kids.filter((k) => !bars.includes(k)), ...(foot && !wrap?.contains(foot) && !bars.includes(foot) ? [foot] : [])].filter((e) => !/^(script|style|template|noscript)$/i.test(e.tagName));
   const sig = (e) => e.id ? `${e.tagName.toLowerCase()}#${e.id}` : `${e.tagName.toLowerCase()}.${String(e.className && e.className.baseVal !== undefined ? e.className.baseVal : e.className).split(/\s+/).filter(Boolean)[0] || ''}`;
-  return all.map((e, i) => { const r = e.getBoundingClientRect(); return { i, bar: bars.includes(e), sig: sig(e), cls: String(e.className).slice(0, 80), x: Math.max(0, Math.round(r.left + scrollX)), y: Math.max(0, Math.round(r.top + scrollY)), w: Math.round(r.width), h: Math.round(r.height), text: (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 60) }; })
+  return all.map((e, i) => { const r = e.getBoundingClientRect(); return { i, bar: bars.includes(e), foot: e === foot, sig: sig(e), cls: String(e.className).slice(0, 80), x: Math.max(0, Math.round(r.left + scrollX)), y: Math.max(0, Math.round(r.top + scrollY)), w: Math.round(r.width), h: Math.round(r.height), text: (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 60) }; })
     .filter((p) => p.w > 0 && p.h > 0);
 };
 const PROBE = async ({ pts, hideSel, bar }) => {   // measured values of the element under each point (document coordinates)
@@ -263,10 +281,14 @@ async function one(pagePath, w, held) {
   const [A, B] = await Promise.all([grab(ca, WP + wpPath(pagePath), 'wp'), grab(cb, wfUrl, 'wf')]);
   const res = { path: pagePath, w, wpPath: wpPath(pagePath), status: [A.status, B.status], docH: [A.docH, B.docH], partCount: [A.parts.length, B.parts.length], errors: { wp: A.errors, wf: B.errors }, parts: [] };
   if (A.status !== 200 || B.status !== 200) res.error = `not 200 on both sides (WordPress ${A.status}, staging ${B.status})`;
-  const n = res.error ? 0 : Math.max(A.parts.length, B.parts.length);
-  for (let i = 0; i < n; i++) {
-    const a = A.parts[i], b = B.parts[i]; const row = { i, wp: a && { sig: a.sig, cls: a.cls, y: a.y, w: a.w, h: a.h, text: a.text }, wf: b && { sig: b.sig, cls: b.cls, y: b.y, w: b.w, h: b.h, text: b.text } };
-    if (!a || !b) { row.issue = a ? 'missing on staging' : 'extra on staging'; res.parts.push(row); continue; }
+  // Pairs are made in order within each group: bars with bars, content with content, the footer with the footer. Paired
+  // across the whole list, a bar that one side's selector misses pushed every later pair one down, and the report then
+  // named the footer as missing although it was there, the same size, on both sides.
+  const kindOf = (x) => (x.bar ? 'bar' : x.foot ? 'footer' : 'content');
+  const pairs = []; if (!res.error) for (const k of ['bar', 'content', 'footer']) { const ga = A.parts.filter((x) => kindOf(x) === k), gb = B.parts.filter((x) => kindOf(x) === k); for (let j = 0; j < Math.max(ga.length, gb.length); j++) pairs.push([ga[j], gb[j], k]); }
+  for (const [i, [a, b, kind]] of pairs.entries()) {
+    const row = { i, kind, wp: a && { sig: a.sig, cls: a.cls, y: a.y, w: a.w, h: a.h, text: a.text }, wf: b && { sig: b.sig, cls: b.cls, y: b.y, w: b.w, h: b.h, text: b.text } };
+    if (!a || !b) { row.issue = (a ? 'missing on staging' : 'extra on staging') + (kind === 'bar' ? ' (a bar: check that its selector matches on both sides)' : ''); res.parts.push(row); continue; }
     row.dh = b.h - a.h; row.dw = b.w - a.w;
     const cw = Math.min(a.w, b.w, A.shot.width - a.x, B.shot.width - b.x), chh = Math.min(a.h, b.h, A.shot.height - a.y, B.shot.height - b.y);
     if (cw <= 0 || chh <= 0) { res.parts.push(row); continue; }
