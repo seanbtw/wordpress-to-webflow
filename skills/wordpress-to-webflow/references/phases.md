@@ -140,7 +140,7 @@ List every block the theme shows or hides by device (decided on the server from 
 Done when
 - Every path in `inventory/urls.csv` that is a page on the new site resolves on staging to the right page (rows that land only through a redirect are checked in Phase 6).
 - Page names, slugs, SEO titles and descriptions are written only from a generated payload (`seo.csv` turned into the call's data), never typed, and compared by script with `seo.csv` after writing: 0 mismatches. A description typed from memory on one build was not the old site's wording; it is how invented copy gets in.
-- Section sequence per page equals the composition map, by script, all green.
+- Section sequence per page equals the composition map, by script, all green. The compiler stamps every block root with its block name in a data attribute, and the checker reads only that attribute on the Webflow side, never class names (`verification.md`, structure checks).
 - The heading-order crawl reports every page's headings equal to WordPress, apart from the listed `h1` changes. One `h1` per page is the target: where WordPress prints several, the first stays the `h1` and the change is listed; where it prints none, adding one is new wording and waits for the owner.
 - Every template example is measured whole at the fixed widths.
 - The whole-page sweep has run over every path (the count of page loads compared is in `PROGRESS.md`), and its triage is empty or every row left is explained.

@@ -14,6 +14,8 @@
 //           <verifyDir>/staging-paths.json (with --all)   from staging-paths.mjs
 //           <inventoryDir>/urls.csv (optional)            columns path, expected_path: gives the WordPress path for a
 //                                                         staging path that was renamed on purpose
+//           pathRewrites (optional)                     [{ prefixRe, to }] as in page-sweep.mjs: the WordPress path
+//                                                       for a staging path moved by a rule
 //           checks.excludePathRes (optional, with --all)  paths left out
 //           checks.glued.within (optional, --rendered)    selector whose text is read, default "main" (else body)
 //           checks.glued.skipWithin (optional, --rendered) selector removed first, default ".sr-only"
@@ -64,6 +66,8 @@ if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) {
   if (!r.expected_path || !r.path || r.expected_path.includes('?')) continue;
   const k = bare(r.expected_path); if (bare(r.path) === k || !(k in wpPathFor)) wpPathFor[k] = r.path;
 }
+// the same rule page-sweep.mjs and colour-check.mjs read, so every check compares a moved page with the same WordPress page
+for (const r of opt('pathRewrites', [])) if (r.prefixRe && r.to && !(bare(r.to) in wpPathFor)) wpPathFor[bare(r.to)] = r.prefixRe.replace(/^\^/, '').replace(/\/\?\$?$/, '').replace(/\$$/, '') + '/';
 const wpPath = (p) => wpPathFor[bare(p)] || (p === '/' ? '/' : p.replace(/\/+$/, '') + '/');
 
 let browser = null, ctx = null;

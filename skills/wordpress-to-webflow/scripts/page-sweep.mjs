@@ -49,6 +49,8 @@
 //           <verifyDir>/sweep/summary.md            parts that differ, worst first (a full --all run only)
 //           <verifyDir>/sweep/summary-partial-<time>.md   the same for a run on named paths or with --limit, so a
 //                                                   spot check never overwrites the last full run's summary
+//           <verifyDir>/sweep/not-compared.json     loads with no result in the newest run that tried them; the triage
+//                                                   leaves out any older result for those
 //           <verifyDir>/sweep/triage.md             the same differences grouped by cause (staging element +
 //                                                   property), by number of pages: one fix per row
 //           The count of page loads compared goes to standard error, so a run that compared nothing is plain to see.
@@ -91,6 +93,8 @@ const sameTextColour = (p) => colourRegs(p).some((g) => g.wp?.el?.text && g.wp.e
 const differs = (p) => p.issue || Math.abs(p.dh || 0) > 2 || (p.diffPct || 0) > MIN || textColour(p);
 
 // ---------------------------------------------------------------------------------------------- triage
+// one key per page and width, the same whether the page was asked for with or without its closing slash
+function loadKey(p, w) { const s = String(p), q = s.includes('?') ? '?' + s.split('?')[1] : ''; return `${(s.split('?')[0].replace(/\/+$/, '') || '/') + q} @${w}`; }
 function triage() {
   // One result per page and width: the newest. A folder that has seen earlier runs holds results under other names
   // (the same page asked for with and without its closing slash) and results for pages since removed; counted in,
@@ -103,11 +107,15 @@ function triage() {
   for (const f of fs.readdirSync(DIR).filter((f) => f.endsWith('.json'))) {
     let r; try { r = JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')); } catch { continue; } if (!r.parts || !r.path) continue;
     if (known && !known.has(bareP(r.path))) { gone++; continue; }
-    const k = `${bareP(r.path)} @${r.w}`, t = fs.statSync(path.join(DIR, f)).mtimeMs, had = newest.get(k);
+    const k = loadKey(r.path, r.w), t = fs.statSync(path.join(DIR, f)).mtimeMs, had = newest.get(k);
     if (had) old++; if (!had || t > had.t) newest.set(k, { f, t });
   }
+  // A load the last run could not compare (not-compared.json) still has its result from an earlier run on disk. That
+  // result describes staging as it was before, so it is left out: one run's triage counted 4 such loads as compared.
+  let notNow = {}; try { notNow = JSON.parse(fs.readFileSync(path.join(DIR, 'not-compared.json'), 'utf8')); } catch {}
+  let stale = 0; for (const k of Object.keys(notNow)) if (newest.delete(k)) stale++;
   const files = [...newest.values()].map((v) => v.f);
-  const leftOut = old || gone ? ` (left out: ${old} older results for the same page and width, ${gone} for pages not in this run's page list)` : '';
+  const leftOut = old || gone || stale ? ` (left out: ${old} older results for the same page and width, ${gone} for pages not in this run's page list${stale ? `, ${stale} older results for loads the last run could not compare` : ''})` : '';
   const causes = new Map(); const shape = []; let parts = 0, bad = 0;
   // every differing part gets one kind, from what was measured, so the account of a run starts from numbers
   const KIND = { colour: 'the same text is a different colour on the two sides: a fault until explained', colourOther: 'a text colour differs, but the two texts under the spot are not the same: measure each text on both pages', shape: 'missing, extra or a different height', value: 'a measured value differs', picture: 'no value differs; a different picture file is under the spot (another slide, another image)', pixels: 'no value differs; the same picture drawn differently (resampled, or not painted)', text: 'no value differs; text or an edge lands on other pixels' };
@@ -331,6 +339,10 @@ await Promise.race([browser.close().catch(() => {}), nap(10000)]);   // a hung p
 
 // summary: parts that differ, worst first; pages that could not be compared, first of all
 const failed = all.filter((r) => r.error);
+// keep the list of loads with no result from the newest run that tried them, for the triage (and for --triage later)
+{ const f = path.join(DIR, 'not-compared.json'); let nc = {}; try { nc = JSON.parse(fs.readFileSync(f, 'utf8')); } catch {}
+  for (const r of all) { const k = loadKey(r.path, r.w); if (r.error) nc[k] = r.error; else delete nc[k]; }
+  fs.writeFileSync(f, JSON.stringify(nc, null, 1) + '\n'); }
 const rows = all.flatMap((r) => (r.parts || []).filter(differs).map((x) => ({ path: r.path, w: r.w, ...x })));
 rows.sort((a, b) => (b.issue ? 1e9 : Math.abs(b.dh || 0) * 100 + (b.diffPct || 0)) - (a.issue ? 1e9 : Math.abs(a.dh || 0) * 100 + (a.diffPct || 0)));
 const cell = (s) => String(s ?? '').replace(/\|/g, '/');

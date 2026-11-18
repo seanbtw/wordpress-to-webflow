@@ -9,6 +9,8 @@
 //           <verifyDir>/staging-paths.json            from staging-paths.mjs (the paths to check)
 //           <inventoryDir>/urls.csv (optional)        columns path, expected_path: gives the WordPress path for a
 //                                                     staging path that was renamed on purpose
+//           pathRewrites (optional)                 [{ prefixRe, to }] as in page-sweep.mjs: the WordPress path
+//                                                   for a staging path moved by a rule
 //           checks.headings.skipWithin (optional)     headings inside these are left out on both sides; default
 //                                                     "nav, footer, [aria-hidden=true]". Add slider tracks here:
 //                                                     slider libraries hide off-screen slides in different ways
@@ -50,6 +52,8 @@ if (fs.existsSync(urlsFile)) for (const r of readCsv(urlsFile)) {
   if (!r.expected_path || !r.path || r.expected_path.includes('?')) continue;
   const k = bare(r.expected_path); if (bare(r.path) === k || !(k in wpPathFor)) wpPathFor[k] = r.path;
 }
+// the same rule page-sweep.mjs and colour-check.mjs read, so every check compares a moved page with the same WordPress page
+for (const r of opt('pathRewrites', [])) if (r.prefixRe && r.to && !(bare(r.to) in wpPathFor)) wpPathFor[bare(r.to)] = r.prefixRe.replace(/^\^/, '').replace(/\/\?\$?$/, '').replace(/\$$/, '') + '/';
 const wpPath = (p) => wpPathFor[bare(p)] || (p === '/' ? '/' : p.replace(/\/+$/, '') + '/');
 
 const browser = await chromium.launch();
