@@ -61,7 +61,8 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
   const result = await page.evaluate(async ({ sel, index, hide, ONE_ITEM, SKIP_WITHIN }) => {
     document.querySelectorAll('img[loading=lazy]').forEach((i) => i.setAttribute('loading', 'eager'));
     await document.fonts.ready;
-    await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+    // 5 s at most for each: decode() never settles on a lazy image that never loads (one inside a hidden pane)
+    await Promise.all([...document.images].map((i) => Promise.race([i.decode().catch(() => {}), new Promise((r) => setTimeout(r, 5000))])));
     for (const h of hide) document.querySelectorAll(h).forEach((e) => (e.style.display = 'none'));
     const root = document.querySelectorAll(sel)[index];
     if (!root) return null;

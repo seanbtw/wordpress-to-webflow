@@ -208,7 +208,11 @@ const PREP = async () => {   // everything loaded and still, so the two sides ar
   document.querySelectorAll('img[data-src], img[data-srcset], source[data-srcset]').forEach((i) => { if (i.dataset.srcset) i.srcset = i.dataset.srcset; if (i.dataset.src) i.src = i.dataset.src; });
   document.querySelectorAll('[data-bg]').forEach((e) => { e.style.backgroundImage = `url("${e.dataset.bg}")`; });
   for (let y = 0; y < document.body.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); }   // wake scroll-triggered loaders
-  window.scrollTo(0, 0); await document.fonts.ready; await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+  // A script can add images after the scroll (a grid that fills hidden filter panes half a second later). A lazy image
+  // that never nears the viewport never loads, and decode() on it never settles: one page waited out the whole load
+  // limit at every width. So wait, switch the late ones to eager as well, and give each decode 5 s at most.
+  await new Promise((r) => setTimeout(r, 1000)); document.querySelectorAll('img[loading=lazy]').forEach((i) => i.setAttribute('loading', 'eager'));
+  window.scrollTo(0, 0); await document.fonts.ready; await Promise.all([...document.images].map((i) => Promise.race([i.decode().catch(() => {}), new Promise((r) => setTimeout(r, 5000))])));
   await new Promise((r) => setTimeout(r, 1500));
   await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; setTimeout(r, 5000); }))));
   const st = document.createElement('style'); st.textContent = '.w-webflow-badge{display:none!important} *{caret-color:transparent!important}'; document.head.appendChild(st);
