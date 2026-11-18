@@ -1,6 +1,6 @@
 // measure-blocks.mjs — compares a block on the local WordPress copy with the same block on Webflow staging by
-// measured values, not by picture. It walks both blocks in document order, pairs their "content" elements by
-// position (elements with their own text, media, form fields, or a background, background image or border), and
+// measured values, not by picture. It walks both blocks in document order, pairs their "content" elements by what
+// they are, in order (elements with their own text, media, form fields, or a background, background image or border), and
 // compares each pair: box relative to the block (x, y, width, height), font family, size, weight, line height,
 // letter spacing, text transform, colour, background colour and image, border widths, radius and opacity.
 //
@@ -79,6 +79,9 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
     const borders = (s) => ['Top', 'Right', 'Bottom', 'Left'].map((d) => (s[`border${d}Style`] === 'none' ? 0 : parseFloat(s[`border${d}Width`]))).join(' ');
     const bgName = (s) => (s.backgroundImage.match(/([^/"']+)["']?\)\s*$/) || [])[1] || '';
     const family = (s) => s.fontFamily.split(',')[0].replace(/"/g, '');
+    // the text a reader sees: not a label hidden with display:none (a "Close" that shows only when the menu is open), not screen-reader text
+    const drawn = (x, top) => { for (let n = x; n; n = n.parentElement) { const st = getComputedStyle(n); if (st.display === 'none' || st.visibility === 'hidden') return false; if (n === top) break; } return true; };
+    const seen = (e) => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n, t = ''; while ((n = w.nextNode())) { const p = n.parentElement; if (p.closest('svg') || skipped(p) || !drawn(p, e)) continue; t += n.textContent; } return t.replace(/\s+/g, ' ').trim(); };
     const isOne = (e) => {
       if (ONE_ITEM && e.matches(ONE_ITEM)) return true;
       if (!e.matches('a, button')) return false;
@@ -93,9 +96,9 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
         if (!shown(c)) continue;
         if (!hasBox(c)) { if (c.tagName !== 'svg') walk(c); continue; }   // zero-size wrapper: its children may be visible
         if (isOne(c)) {
-          const leaves = [...c.querySelectorAll('*')].filter((x) => !skipped(x) && !x.closest('svg') && x.children.length === 0 && x.textContent.trim());
+          const leaves = [...c.querySelectorAll('*')].filter((x) => !skipped(x) && !x.closest('svg') && x.children.length === 0 && x.textContent.trim() && drawn(x, c));
           const label = leaves.pop() || c; const s = getComputedStyle(c), l = getComputedStyle(label);
-          items.push({ tag: 'button', text: (label.textContent || '').trim().slice(0, 40), ...box(c), font: family(l), size: l.fontSize, weight: l.fontWeight,
+          items.push({ tag: 'button', text: seen(label).slice(0, 40), ...box(c), font: family(l), size: l.fontSize, weight: l.fontWeight,
             lh: l.lineHeight, ls: s.letterSpacing, tt: s.textTransform, color: l.color, bg: s.backgroundColor, bgimg: bgName(s), bw: borders(s), radius: s.borderTopLeftRadius, op: s.opacity });
           continue;
         }
@@ -121,6 +124,26 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
   return result;
 }
 
+// Pairs the two lists by what each item is (its text, or its kind when it has none), keeping the order: the longest run of items the two
+// sides share. One wrapper more on one side is then one row, "only on staging", and every item after it still meets its own partner.
+// Paired by position, that one wrapper made every later item meet its neighbour: 674 mismatches on a footer that had none.
+const kind = (t) => (/^(img|video|iframe|svg|input|textarea|select|button)$/.test(t) ? t : 'box');
+const keyOf = (it) => { const t = it.text.replace(/\s+/g, ' ').trim(); return t ? 't:' + t : 'k:' + kind(it.tag); };
+const box4 = (it) => `${it.x},${it.y} ${it.w}x${it.h}`;
+function align(A, B) {
+  const ka = A.map(keyOf), kb = B.map(keyOf), n = A.length, m = B.length;
+  const L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = ka[i] === kb[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const pairs = [], onlyA = [], onlyB = []; let i = 0, j = 0;
+  while (i < n && j < m) { if (ka[i] === kb[j]) pairs.push([i++, j++]); else if (L[i + 1][j] >= L[i][j + 1]) onlyA.push(i++); else onlyB.push(j++); }
+  while (i < n) onlyA.push(i++); while (j < m) onlyB.push(j++);
+  // an item left over on each side at the same place in the order is one item whose text changed: pair them, so the text row says so
+  for (let k = 0; k < onlyA.length; k++) { const ia = onlyA[k]; const at = onlyB.findIndex((jb) => pairs.filter(([pi]) => pi < ia).length === pairs.filter(([, pj]) => pj < jb).length && kind(A[ia].tag) === kind(B[jb].tag));
+    if (at >= 0) { pairs.push([ia, onlyB[at]]); onlyB.splice(at, 1); onlyA.splice(k--, 1); } }
+  pairs.sort((p, q) => p[0] - q[0]);
+  return { pairs, onlyA, onlyB };
+}
+
 const browser = await chromium.launch();
 let failed = 0;
 for (const spec of specs) {
@@ -141,8 +164,11 @@ for (const spec of specs) {
     boxes('root', a.root, b.root);
     res.checks++; if (a.root.bg !== b.root.bg) bad('root.bg', a.root.bg, b.root.bg);
     res.checks++; if (a.items.length !== b.items.length) bad('item-count', a.items.length, b.items.length);
-    for (let i = 0; i < Math.min(a.items.length, b.items.length); i++) {
-      const x = a.items[i], y = b.items[i];
+    const { pairs, onlyA, onlyB } = align(a.items, b.items);
+    for (const i of onlyA) { res.checks++; bad(`#${i} ${a.items[i].tag} "${a.items[i].text.slice(0, 18)}".only on WordPress`, box4(a.items[i]), null); }
+    for (const j of onlyB) { res.checks++; bad(`staging #${j} ${b.items[j].tag} "${b.items[j].text.slice(0, 18)}".only on staging`, null, box4(b.items[j])); }
+    for (const [i, j] of pairs) {
+      const x = a.items[i], y = b.items[j];
       const pre = `#${i} ${x.tag} "${x.text.slice(0, 18)}"`;
       res.checks++; if (x.text.replace(/\s+/g, ' ') !== y.text.replace(/\s+/g, ' ')) bad(`${pre}.text`, x.text, y.text);
       boxes(pre, x, y);

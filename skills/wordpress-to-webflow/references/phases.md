@@ -123,7 +123,7 @@ Done when
 - The traps in `webflow-traps.md`, "Building elements".
 
 Done when
-- Every block exists per its Phase 1b decision, with an instance of each variant on a `Component Lab` page.
+- Every block exists per its Phase 1b decision, with an instance of each variant on a `Component Lab` page. This holds when blocks are compiled sections and not components: the lab instance is then the compiled section inserted once per variant, taken from the composition map's list of variants. A script counts the lab's instances against that list and the gate needs none missing. One build reached the end of Phase 4 with an empty lab page, because nothing counted.
 - Each is measured at the fixed widths against the same block on the local WordPress (`scripts/measure-blocks.mjs`): boxes within 2 px; type, colour, background and border equal; zero mismatches or each one explained.
 - No component depends on a script to look right at rest; scripts only add behaviour.
 
