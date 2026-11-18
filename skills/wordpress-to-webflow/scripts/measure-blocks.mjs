@@ -2,7 +2,7 @@
 // measured values, not by picture. It walks both blocks in document order, pairs their "content" elements by what
 // they are, in order (elements with their own text, media, form fields, or a background, background image or border), and
 // compares each pair: box relative to the block (x, y, width, height), font family, size, weight, line height,
-// letter spacing, text transform, colour, background colour and image, border widths, radius and opacity.
+// letter spacing, text transform, colour, background colour and image, border widths, radius and drawn opacity.
 //
 // Usage:    node measure-blocks.mjs <spec.json> [--dump] [--config site.config.json]
 //           spec.json: [{ "name": "hero",
@@ -38,6 +38,11 @@
 //    Only staging, because on the WordPress side a stray query parameter can change the
 //    page (a listing that reads every parameter as a filter).
 //  - Reduced motion is on, so sliders rest on their first slide.
+//  - The block is scrolled to the top of the window by its measured place, and checked: scrollIntoView left it 80 px off on
+//    one side (a page with a sticky bar above the block; a theme's scroll-padding does the same), and whatever was pinned
+//    inside the block read 80 px out.
+//  - Opacity is the drawn one (the item's own times its wrappers' inside the block): 0.7 on the text on one side and on a
+//    wrapper on the other is the same grey, and was 104 false rows.
 import fs from 'node:fs';
 import { chromium, devices } from 'playwright';
 import { opt, origin, verify, positionals, has, stop } from './site.mjs';
@@ -67,8 +72,14 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
     const root = document.querySelectorAll(sel)[index];
     if (!root) return null;
     document.documentElement.style.scrollBehavior = 'auto';
-    root.scrollIntoView({ behavior: 'instant', block: 'start' });
-    await new Promise((done) => setTimeout(done, 300));
+    // the block's top goes to the top of the window, by its measured place, and is checked: scrollIntoView can land off it
+    // (scroll-padding, scroll-margin, a sticky bar above), and anything fixed or sticky inside is then measured away from its partner
+    for (let i = 0; i < 4; i++) {
+      const top = root.getBoundingClientRect().top;
+      if (Math.abs(top) < 0.5) break;
+      window.scrollTo(0, window.scrollY + top);
+      await new Promise((done) => setTimeout(done, 300));
+    }
     const R = root.getBoundingClientRect();
     const r1 = (n) => Math.round(n * 10) / 10;
     const box = (e) => { const b = e.getBoundingClientRect(); return { x: r1(b.left - R.left), y: r1(b.top - R.top), w: r1(b.width), h: r1(b.height) }; };
@@ -76,6 +87,9 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
     const hasBox = (e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
     const ownText = (e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
     const skipped = (e) => SKIP_WITHIN && e.closest(SKIP_WITHIN);
+    // the opacity the item is drawn at: its own times every box around it, up to the block. One side can put 0.7 on the text
+    // and the other on a wrapper around it, and the reader sees the same grey.
+    const drawnOp = (e) => { let o = 1; for (let n = e; n; n = n.parentElement) { o *= parseFloat(getComputedStyle(n).opacity); if (n === root) break; } return String(Math.round(o * 1000) / 1000); };
     const borders = (s) => ['Top', 'Right', 'Bottom', 'Left'].map((d) => (s[`border${d}Style`] === 'none' ? 0 : parseFloat(s[`border${d}Width`]))).join(' ');
     const bgName = (s) => (s.backgroundImage.match(/([^/"']+)["']?\)\s*$/) || [])[1] || '';
     const family = (s) => s.fontFamily.split(',')[0].replace(/"/g, '');
@@ -99,7 +113,7 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
           const leaves = [...c.querySelectorAll('*')].filter((x) => !skipped(x) && !x.closest('svg') && x.children.length === 0 && x.textContent.trim() && drawn(x, c));
           const label = leaves.pop() || c; const s = getComputedStyle(c), l = getComputedStyle(label);
           items.push({ tag: 'button', text: seen(label).slice(0, 40), ...box(c), font: family(l), size: l.fontSize, weight: l.fontWeight,
-            lh: l.lineHeight, ls: s.letterSpacing, tt: s.textTransform, color: l.color, bg: s.backgroundColor, bgimg: bgName(s), bw: borders(s), radius: s.borderTopLeftRadius, op: s.opacity });
+            lh: l.lineHeight, ls: s.letterSpacing, tt: s.textTransform, color: l.color, bg: s.backgroundColor, bgimg: bgName(s), bw: borders(s), radius: s.borderTopLeftRadius, op: drawnOp(c) });
           continue;
         }
         const s = getComputedStyle(c);
@@ -111,7 +125,7 @@ async function measure(ctx, base, { path, sel, index = 0, hide = [] }, bust) {
           if (SKIP_WITHIN) c.querySelectorAll(SKIP_WITHIN).forEach((x) => { const v = (x.innerText || '').trim(); if (v) text = text.replace(v, ''); });
           items.push({ tag: c.tagName.toLowerCase(), text: (text || c.getAttribute('alt') || '').trim().slice(0, 40), ...box(c), font: family(s), size: s.fontSize,
             weight: s.fontWeight, lh: s.lineHeight, ls: s.letterSpacing, tt: s.textTransform, color: s.color, bg: s.backgroundColor, bgimg: bgName(s), bw: borders(s),
-            radius: s.borderTopLeftRadius, op: s.opacity });
+            radius: s.borderTopLeftRadius, op: drawnOp(c) });
         }
         if (c.tagName !== 'svg') walk(c);
       }
