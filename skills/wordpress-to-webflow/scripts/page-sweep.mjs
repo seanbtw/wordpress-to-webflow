@@ -334,14 +334,19 @@ const failed = all.filter((r) => r.error);
 const rows = all.flatMap((r) => (r.parts || []).filter(differs).map((x) => ({ path: r.path, w: r.w, ...x })));
 rows.sort((a, b) => (b.issue ? 1e9 : Math.abs(b.dh || 0) * 100 + (b.diffPct || 0)) - (a.issue ? 1e9 : Math.abs(a.dh || 0) * 100 + (a.diffPct || 0)));
 const cell = (s) => String(s ?? '').replace(/\|/g, '/');
+// a bar found on one side only is nearly always a selector that matches on that side alone: name the pages, so it is
+// settled before any other row is read
+const loneBars = [...new Set(all.flatMap((r) => (r.parts || []).filter((x) => x.kind === 'bar' && x.issue).map(() => r.path)))].sort();
 const md = ['# Whole-page sweep: WordPress (local copy) against staging', '',
   `${new Date().toISOString().slice(0, 16)}Z · ${total - failed.length} of ${total} page loads compared (${pages.length} pages × ${WIDTHS.join('/')}) · parts that differ: ${rows.length}`, '',
   ...(failed.length ? ['## Not compared', '', ...failed.map((r) => `- ${r.path} @${r.w}: ${r.error}`), ''] : []),
+  ...(loneBars.length ? ['## Bars found on one side only', '', `On ${loneBars.length} page(s) a bar (the header, or a selector in checks.sweep.bars) matched on WordPress or on staging but not both. Check each selector in a browser on both sides, at a phone and a desktop width, before reading the rows below: ${loneBars.slice(0, 40).join(', ')}${loneBars.length > 40 ? ', …' : ''}`, ''] : []),
   '| Page | Width | Part | WordPress h | Staging h | Δh | Pixels differ | First difference (element: property WordPress → staging) | Picture |', '|---|---:|---|---:|---:|---:|---:|---|---|',
   ...rows.map((x) => { const r0 = x.regions?.[0]; const d = r0 ? Object.entries(r0.diff.el).slice(0, 4).map(([k, v]) => `${k}: ${String(v[0]).slice(0, 30)} → ${String(v[1]).slice(0, 30)}`).join('; ') : ''; return `| ${x.path} | ${x.w} | #${x.i} ${cell(x.wp?.sig || x.wf?.sig)} ${x.issue || ''} | ${x.wp?.h ?? '–'} | ${x.wf?.h ?? '–'} | ${x.dh ?? ''} | ${x.diffPct ?? ''}% | ${r0 ? `${r0.wp?.el?.tag || '?'}.${cell((r0.wp?.el?.cls || '').split(' ')[0])} "${cell((r0.wp?.el?.text || '').slice(0, 20))}" — ${cell(d)}` : ''} | ${x.img || ''} |`; })];
 const FULL = has('--all') && !has('--limit');
 const summaryFile = path.join(DIR, FULL ? 'summary.md' : `summary-partial-${new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')}.md`);
 fs.writeFileSync(summaryFile, md.join('\n') + '\n');
 console.error(`page-sweep: ${total - failed.length} of ${total} page loads compared; ${rows.length} parts differ → ${summaryFile}${FULL ? '' : ' (partial run: the full run\'s summary.md is untouched)'}`);
+if (loneBars.length) console.error(`page-sweep: a bar matched on one side only on ${loneBars.length} page(s): check checks.sweep.bars and .header on both sides (${loneBars.slice(0, 6).join(', ')}${loneBars.length > 6 ? ', …' : ''})`);
 triage();
 process.exit(rows.length || failed.length ? 1 : 0);
