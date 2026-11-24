@@ -39,6 +39,7 @@ These are the steps only a person can do. Ask for all of them at the start, sayi
 | A test-contact procedure for any live form or CRM provider | Agreed with whoever owns the CRM | No test submission before it exists |
 | How oversized images are to be slimmed (re-encode smaller copies, or put a resizer in front of them) | A decision; can wait until Phase 7 | It changes what visitors download. Until answered, images stay as uploaded and the weight is reported (a file over Webflow's upload limit has to be re-encoded to go up at all: `references/import.md`) |
 | Whether content types that no published page uses are migrated | A decision, before Phase 2 ends | It decides what content survives the move. Until answered, leave those types until last and say so |
+| Whether the old builder's credit link in the footer carries over | A decision; can wait until review | It is a link to another company on every page, usually printed by the old theme, not by content. Three builds copied it because the old site had it and the owner then asked for it to go; one left it out and logged that. Until answered, copy what the old site shows and put it on the list. If it goes, remove it from the comparison too (`references/verification.md`, accepted differences) |
 
 Check the token before Phase 0 with `GET /v2/token/introspect`: it answers with the scopes and the one site the token works on, without printing the token.
 
